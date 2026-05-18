@@ -1,0 +1,53 @@
+spring:
+  application:
+    name: stock-backend
+
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID:local-dev-google-client-id}
+            client-secret: ${GOOGLE_CLIENT_SECRET:local-dev-google-client-secret}
+            scope:
+              - email
+              - profile
+        provider:
+          google:
+            user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+
+  cache:
+    type: ${CACHE_TYPE:simple}
+
+  data:
+    redis:
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6379}
+      repositories:
+        enabled: false
+
+server:
+  port: ${SERVER_PORT:8080}
+
+jwt:
+  secret: ${JWT_SECRET:change_me_with_a_32_chars_min_local_secret}
+
+ai:
+  service:
+    enabled: ${AI_SERVICE_ENABLED:false}
+    url: ${AI_SERVICE_URL:http://127.0.0.1:8000}
+  jobs:
+    enabled: ${AI_JOBS_ENABLED:true}
+    fixed-delay-ms: ${AI_JOBS_FIXED_DELAY_MS:900000}
+
+stockpilot:
+  rate-limit:
+    auth-per-minute: ${RATE_LIMIT_AUTH_PER_MINUTE:20}
+    ai-per-minute: ${RATE_LIMIT_AI_PER_MINUTE:40}
+  procurement:
+    approval-threshold: ${PROCUREMENT_APPROVAL_THRESHOLD:1000}

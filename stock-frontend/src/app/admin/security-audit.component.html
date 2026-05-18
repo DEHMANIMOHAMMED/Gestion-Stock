@@ -1,0 +1,128 @@
+<main class="page-shell">
+  <section class="page-hero">
+    <div>
+      <p class="eyebrow">Admin</p>
+      <h1>Audit & securite</h1>
+      <p>Suivi des actions sensibles IA, Copilot et recommandations dans l'organisation courante.</p>
+    </div>
+    <div class="hero-actions">
+      <button type="button" (click)="exportCsv()">Exporter CSV</button>
+      <button type="button" class="secondary" (click)="exportPdf()">Exporter PDF</button>
+      <button type="button" (click)="load()" [disabled]="loading()">
+        {{ loading() ? 'Chargement...' : 'Rafraichir' }}
+      </button>
+    </div>
+  </section>
+
+  <section class="metrics-grid">
+    <article>
+      <span>Evenements</span>
+      <strong>{{ totalEvents() }}</strong>
+      <small>100 derniers logs tenant</small>
+    </article>
+    <article>
+      <span>Commandes</span>
+      <strong>{{ procurementEvents() }}</strong>
+      <small>Achats et approbations</small>
+    </article>
+    <article>
+      <span>Notifications</span>
+      <strong>{{ notificationEvents() }}</strong>
+      <small>Alertes et actions admin</small>
+    </article>
+    <article>
+      <span>IA</span>
+      <strong>{{ aiEvents() }}</strong>
+      <small>Copilot et recommandations</small>
+    </article>
+  </section>
+
+  <section class="panel">
+    <form class="filters" (ngSubmit)="load()">
+      <label>
+        Action
+        <input name="action" [(ngModel)]="filters.action" placeholder="COPILOT, RECOMMENDATION..." />
+      </label>
+      <label>
+        Acteur
+        <input name="actorEmail" [(ngModel)]="filters.actorEmail" placeholder="admin@demo.local" />
+      </label>
+      <label>
+        Module
+        <select name="module" [(ngModel)]="filters.module">
+          <option value="">Tous</option>
+          <option value="AUTH">Auth</option>
+          <option value="AI">IA</option>
+          <option value="PROCUREMENT">Procurement</option>
+          <option value="NOTIFICATION">Notification</option>
+          <option value="IMPORT">Import</option>
+          <option value="PRODUCT">Product</option>
+          <option value="SYSTEM">System</option>
+        </select>
+      </label>
+      <label>
+        Severite
+        <select name="severity" [(ngModel)]="filters.severity">
+          <option value="">Toutes</option>
+          <option value="INFO">Info</option>
+          <option value="WARNING">Warning</option>
+          <option value="CRITICAL">Critical</option>
+        </select>
+      </label>
+      <label>
+        Du
+        <input type="date" name="from" [(ngModel)]="filters.from" />
+      </label>
+      <label>
+        Au
+        <input type="date" name="to" [(ngModel)]="filters.to" />
+      </label>
+      <label>
+        Cible
+        <input name="targetType" [(ngModel)]="filters.targetType" placeholder="PRODUCT, ORDER..." />
+      </label>
+      <label>
+        Source
+        <input name="source" [(ngModel)]="filters.source" placeholder="OPENAI, LOCAL_FALLBACK..." />
+      </label>
+      <div class="filter-actions">
+        <button type="submit" [disabled]="loading()">Filtrer</button>
+        <button class="secondary" type="button" (click)="reset()">Reinitialiser</button>
+      </div>
+    </form>
+
+    <p class="error" *ngIf="error()">{{ error() }}</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Acteur</th>
+            <th>Module</th>
+            <th>Severite</th>
+            <th>Action</th>
+            <th>Cible</th>
+            <th>Source</th>
+            <th>Resume</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let log of logs(); trackBy: trackById">
+            <td>{{ log.createdAt | date:'short' }}</td>
+            <td>{{ log.actorEmail }}</td>
+            <td>{{ moduleFor(log) }}</td>
+            <td><span class="severity" [class.warning]="severityFor(log) === 'WARNING'" [class.critical]="severityFor(log) === 'CRITICAL'">{{ severityFor(log) }}</span></td>
+            <td><span class="pill">{{ log.action }}</span></td>
+            <td>{{ log.targetType }} <small *ngIf="log.targetId">#{{ log.targetId }}</small></td>
+            <td>{{ log.source || '-' }}</td>
+            <td>{{ log.summary }}</td>
+          </tr>
+          <tr *ngIf="!loading() && !logs().length">
+            <td colspan="8" class="empty">Aucun evenement trouve avec ces filtres.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>

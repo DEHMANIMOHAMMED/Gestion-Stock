@@ -1,0 +1,135 @@
+<section class="notification-center-page">
+  <header class="page-header">
+    <div>
+      <p>Admin realtime</p>
+      <h1>Notification Center</h1>
+    </div>
+    <button type="button" (click)="load()">Actualiser</button>
+  </header>
+
+  <p class="message" *ngIf="message()">{{ message() }}</p>
+  <div class="loading" *ngIf="loading()">Chargement des notifications...</div>
+
+  <section class="preferences-panel">
+    <div>
+      <h2>Preferences d'alertes</h2>
+      <p>
+        Controle les notifications automatiques envoyees aux administrateurs.
+        <span *ngIf="preferences()?.defaultValue">Configuration par defaut active.</span>
+      </p>
+    </div>
+    <label class="toggle-row">
+      <input type="checkbox" [(ngModel)]="preferenceForm.thresholdNotificationsEnabled" />
+      Commandes au-dessus du seuil
+    </label>
+    <label class="toggle-row">
+      <input type="checkbox" [(ngModel)]="preferenceForm.criticalStockoutNotificationsEnabled" />
+      Ruptures IA critiques
+    </label>
+    <button type="button" (click)="savePreferences()">Enregistrer</button>
+  </section>
+
+  <section class="filters-panel">
+    <label>
+      Type
+      <select [(ngModel)]="filters.type" (ngModelChange)="load()">
+        <option value="ALL">Tous</option>
+        <option value="PURCHASE_ORDER_THRESHOLD">Seuil commande</option>
+        <option value="AI_CRITICAL_STOCKOUT">Rupture critique IA</option>
+      </select>
+    </label>
+    <label>
+      Severite
+      <select [(ngModel)]="filters.severity" (ngModelChange)="load()">
+        <option value="ALL">Toutes</option>
+        <option value="CRITICAL">Critique</option>
+        <option value="WARNING">Warning</option>
+        <option value="INFO">Info</option>
+      </select>
+    </label>
+    <label>
+      Lecture
+      <select [(ngModel)]="filters.readStatus" (ngModelChange)="load()">
+        <option value="ALL">Toutes</option>
+        <option value="UNREAD">Non lues</option>
+        <option value="READ">Lues</option>
+      </select>
+    </label>
+    <label>
+      Traitement
+      <select [(ngModel)]="filters.status" (ngModelChange)="load()">
+        <option value="ALL">Tous</option>
+        <option value="OPEN">Ouvertes</option>
+        <option value="ACTIONED">Actionnees</option>
+        <option value="DISMISSED">Ignorees</option>
+      </select>
+    </label>
+  </section>
+
+  <section class="notification-list" *ngIf="notifications().length; else emptyState">
+    <article
+      class="notification-card"
+      *ngFor="let notification of notifications()"
+      [class.critical]="notification.severity === 'CRITICAL'"
+      [class.read]="notification.readAt"
+    >
+      <div class="card-main">
+        <div>
+          <span class="eyebrow">{{ notification.type }}</span>
+          <h2>{{ notification.title }}</h2>
+          <p>{{ notification.message }}</p>
+        </div>
+        <span class="severity">{{ notification.severity }}</span>
+      </div>
+
+      <div class="meta-row">
+        <span>{{ notification.createdAt | date:'short' }}</span>
+        <span>{{ notification.readAt ? 'Lue' : 'Non lue' }}</span>
+        <span>{{ notification.status }}</span>
+        <span *ngIf="notification.actionTaken">Action: {{ notification.actionTaken }}</span>
+      </div>
+
+      <div class="row-actions">
+        <a routerLink="/approvals" *ngIf="notification.purchaseOrderId">Voir commande</a>
+        <a [routerLink]="['/suppliers', notification.supplierId, '360']" *ngIf="notification.supplierId">Fournisseur 360</a>
+        <button type="button" *ngIf="notification.status === 'OPEN' && notification.purchaseOrderId" (click)="action(notification, 'APPROVE_ORDER')">
+          Approuver
+        </button>
+        <button type="button" *ngIf="notification.status === 'OPEN' && notification.purchaseOrderId" (click)="action(notification, 'CONFIRM_ORDER')">
+          Confirmer
+        </button>
+        <button type="button" *ngIf="!notification.readAt" (click)="markRead(notification)">Marquer lue</button>
+        <button type="button" class="ghost" (click)="loadActions(notification.id)">Historique</button>
+      </div>
+
+      <div class="action-history" *ngIf="actionHistory()[notification.id]?.length">
+        <strong>Historique des decisions</strong>
+        <ul>
+          <li *ngFor="let action of actionHistory()[notification.id]">
+            <span>{{ action.createdAt | date:'short' }}</span>
+            <b>{{ action.action }}</b>
+            <em *ngIf="action.reason">{{ action.reason }}</em>
+          </li>
+        </ul>
+      </div>
+
+      <div class="dismiss-panel" *ngIf="notification.status === 'OPEN'">
+        <label>
+          Justification si alerte critique ignoree
+          <input
+            [ngModel]="dismissReasons()[notification.id] || ''"
+            (ngModelChange)="setDismissReason(notification.id, $event)"
+            placeholder="Ex: commande deja geree hors plateforme"
+          />
+        </label>
+        <button type="button" class="secondary" (click)="action(notification, 'DISMISS')">Ignorer</button>
+      </div>
+
+      <p class="dismissal" *ngIf="notification.dismissalReason">Raison: {{ notification.dismissalReason }}</p>
+    </article>
+  </section>
+
+  <ng-template #emptyState>
+    <p class="empty">Aucune notification pour ces filtres.</p>
+  </ng-template>
+</section>

@@ -1,0 +1,20 @@
+<div class="product-form">
+  <h3>{{ form.value.id ? 'Modifier' : 'Ajouter' }} un produit</h3>
+  <form [formGroup]="form" (ngSubmit)="submit()">
+    <label>Nom :</label>
+    <input type="text" formControlName="name" />
+    <label>SKU :</label>
+    <input type="text" formControlName="sku" />
+    <label>Categorie :</label>
+    <input type="text" formControlName="category" />
+    <label>Min. stock :</label>
+    <input type="text" inputmode="numeric" formControlName="minStock" />
+    <label>Unite :</label>
+    <input type="text" formControlName="unit" />
+    <div *ngIf="message" class="error">{{ message }}</div>
+    <div class="buttons">
+      <button type="submit" [disabled]="form.invalid">{{ form.value.id ? 'Enregistrer' : 'Creer' }}</button>
+      <button type="button" (click)="cancel.emit()">Annuler</button>
+    </div>
+  </form>
+</div>

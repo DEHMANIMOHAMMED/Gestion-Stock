@@ -1,0 +1,274 @@
+.procurement-page {
+  display: grid;
+  gap: 22px;
+}
+
+.page-header,
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  padding: 24px;
+}
+
+.page-header {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+
+  p {
+    color: var(--green-strong);
+    font-size: 12px;
+    font-weight: 900;
+    margin: 0;
+    text-transform: uppercase;
+  }
+
+  h1 {
+    font-size: 34px;
+    margin: 6px 0 0;
+  }
+}
+
+.header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.secondary {
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  color: var(--green-strong);
+}
+
+.import-label {
+  align-items: center;
+  border-radius: 12px;
+  cursor: pointer;
+  display: inline-flex;
+  font-weight: 900;
+  min-height: 42px;
+  padding: 0 16px;
+  position: relative;
+
+  input {
+    inset: 0;
+    opacity: 0;
+    position: absolute;
+    width: 100%;
+  }
+}
+
+button {
+  background: var(--green);
+  border: 0;
+  border-radius: 12px;
+  color: #fff;
+  cursor: pointer;
+  font-weight: 900;
+  min-height: 42px;
+  padding: 0 16px;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+a {
+  color: var(--green-strong);
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.forms-grid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.panel {
+  display: grid;
+  gap: 14px;
+
+  h2 {
+    font-size: 20px;
+    margin: 0;
+  }
+
+  label {
+    color: var(--muted);
+    display: grid;
+    font-size: 13px;
+    font-weight: 800;
+    gap: 7px;
+  }
+
+  input,
+  select {
+    background: var(--surface-soft);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    color: var(--text);
+    min-height: 42px;
+    padding: 0 12px;
+  }
+}
+
+.inline-check {
+  align-items: center;
+  display: flex !important;
+  gap: 10px !important;
+
+  input {
+    min-height: auto;
+    width: auto;
+  }
+}
+
+.procurement-table {
+  border-collapse: collapse;
+  width: 100%;
+
+  th,
+  td {
+    border-bottom: 1px solid var(--line);
+    padding: 14px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+
+  th {
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  button {
+    background: var(--surface-soft);
+    border: 1px solid var(--line);
+    color: var(--green-strong);
+  }
+
+  input {
+    background: var(--surface-soft);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    color: var(--text);
+    display: block;
+    margin-top: 8px;
+    min-height: 36px;
+    padding: 0 10px;
+    width: 110px;
+  }
+}
+
+.status {
+  background: #fff8e0;
+  border-radius: 999px;
+  color: #a56d00;
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 900;
+  padding: 6px 10px;
+}
+
+.status.done {
+  background: #eef6f0;
+  color: var(--green-strong);
+}
+
+.status.draft {
+  background: #eef3ff;
+  color: #3157c9;
+}
+
+.line-item {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.line-item small {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.audit-row td {
+  background: var(--surface-soft);
+}
+
+.audit-log {
+  display: grid;
+  gap: 10px;
+}
+
+.audit-entry {
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 1fr 1fr 1.4fr 0.7fr 0.9fr;
+  padding: 12px;
+
+  strong {
+    color: var(--text);
+  }
+
+  span,
+  small {
+    color: var(--muted);
+    font-weight: 800;
+  }
+}
+
+.message,
+.loading,
+.empty {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  color: var(--muted);
+  padding: 16px;
+}
+
+.import-help {
+  ul {
+    color: #b42318;
+    margin: 0;
+    padding-left: 18px;
+  }
+}
+
+@media (max-width: 900px) {
+  .forms-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .page-header {
+    align-items: flex-start;
+    display: grid;
+    gap: 14px;
+  }
+
+  .procurement-table {
+    display: block;
+    overflow-x: auto;
+  }
+
+  .audit-entry {
+    align-items: flex-start;
+    grid-template-columns: 1fr;
+  }
+}

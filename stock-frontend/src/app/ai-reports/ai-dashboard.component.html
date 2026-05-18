@@ -1,0 +1,93 @@
+<section class="ai-page">
+  <header class="ai-header">
+    <div>
+      <p class="eyebrow">StockPilot AI</p>
+      <h1>Cockpit decisionnel</h1>
+    </div>
+    <button type="button" class="action-button" (click)="load()">Actualiser</button>
+  </header>
+
+  <p class="error" *ngIf="message()">{{ message() }}</p>
+  <div class="loading" *ngIf="loading()">Lecture des signaux IA...</div>
+
+  <ng-container *ngIf="dashboard() as data">
+    <section class="ai-grid">
+      <article class="ai-card">
+        <span>Score sante moyen</span>
+        <strong>{{ data.stockHealthAverage }}</strong>
+      </article>
+      <article class="ai-card">
+        <span>Stocks critiques</span>
+        <strong>{{ data.criticalStockCount }}</strong>
+      </article>
+      <article class="ai-card">
+        <span>Commandes en attente</span>
+        <strong>{{ data.pendingPurchaseOrdersCount }}</strong>
+      </article>
+      <article class="ai-card">
+        <span>Fournisseurs a risque</span>
+        <strong>{{ data.supplierIssuesCount }}</strong>
+      </article>
+    </section>
+
+    <section class="decision-grid">
+      <article class="ai-panel">
+        <div class="panel-title">
+          <h2>Top risques</h2>
+          <a routerLink="/stock-health">Voir health score</a>
+        </div>
+        <div class="risk-row" *ngFor="let risk of data.topRisks">
+          <div>
+            <strong>{{ risk.productName }}</strong>
+            <small>{{ risk.sku }} - couverture {{ risk.stockCoverageDays }}j</small>
+          </div>
+          <span class="status-pill" [class.danger]="risk.riskLevel === 'HIGH'" [class.warning]="risk.riskLevel === 'MEDIUM'">
+            {{ risk.healthScore }}
+          </span>
+        </div>
+      </article>
+
+      <article class="ai-panel">
+        <h2>Recommandations actionnables</h2>
+        <div class="risk-row" *ngFor="let recommendation of data.recommendations">
+          <div>
+            <strong>{{ recommendation.productName }}</strong>
+            <small>{{ recommendation.recommendedQuantity }} unite(s) - {{ recommendation.preferredSupplierName || 'fournisseur auto' }}</small>
+          </div>
+          <button
+            type="button"
+            class="ghost-action"
+            (click)="createOrder(recommendation.id)"
+            [disabled]="!!recommendation.purchaseOrderId"
+          >
+            {{ recommendation.purchaseOrderId ? 'Commande #' + recommendation.purchaseOrderId : 'Transformer en commande' }}
+          </button>
+        </div>
+      </article>
+    </section>
+
+    <section class="decision-grid">
+      <article class="ai-panel">
+        <h2>Commandes en attente</h2>
+        <div class="risk-row" *ngFor="let order of data.pendingOrders">
+          <div>
+            <strong>#{{ order.id }} - {{ order.supplierName }}</strong>
+            <small>{{ order.status }} - {{ order.createdAt | date: 'short' }}</small>
+          </div>
+          <a routerLink="/procurement">Ouvrir</a>
+        </div>
+      </article>
+
+      <article class="ai-panel">
+        <h2>Fournisseurs a probleme</h2>
+        <div class="risk-row" *ngFor="let supplier of data.supplierIssues">
+          <div>
+            <strong>{{ supplier.supplierName }}</strong>
+            <small>{{ supplier.reason }}</small>
+          </div>
+          <a [routerLink]="['/suppliers', supplier.supplierId, '360']">360</a>
+        </div>
+      </article>
+    </section>
+  </ng-container>
+</section>

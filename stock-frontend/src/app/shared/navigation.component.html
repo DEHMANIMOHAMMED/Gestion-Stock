@@ -1,0 +1,127 @@
+<nav class="navbar" [class.nav-auth]="auth.isLoggedIn()">
+  <a routerLink="/" class="brand" aria-label="Gestion Stock">
+    <span class="brand-mark">GS</span>
+    <span>
+      <strong>Gestion Stock</strong>
+      <small>Inventory AI</small>
+    </span>
+  </a>
+
+  <ng-container *ngIf="auth.user(); else publicLinks">
+    <div class="nav-section">
+      <span class="nav-label">General</span>
+      <a routerLink="/dashboard" routerLinkActive="active">
+        <span class="nav-icon">D</span>
+        Dashboard
+      </a>
+      <a routerLink="/products" routerLinkActive="active">
+        <span class="nav-icon">I</span>
+        Inventory
+      </a>
+      <a routerLink="/stock" routerLinkActive="active">
+        <span class="nav-icon">S</span>
+        Stock
+      </a>
+      <a routerLink="/procurement" routerLinkActive="active">
+        <span class="nav-icon">F</span>
+        Fournisseurs
+      </a>
+      <a routerLink="/approvals" routerLinkActive="active">
+        <span class="nav-icon">V</span>
+        Approbations
+      </a>
+      <a routerLink="/notifications" routerLinkActive="active" *ngIf="auth.user()?.role === 'ADMIN'">
+        <span class="nav-icon">N</span>
+        Notifications
+      </a>
+      <a routerLink="/security-audit" routerLinkActive="active" *ngIf="auth.user()?.role === 'ADMIN'">
+        <span class="nav-icon">L</span>
+        Audit
+      </a>
+      <a routerLink="/system-health" routerLinkActive="active" *ngIf="auth.user()?.role === 'ADMIN'">
+        <span class="nav-icon">H</span>
+        System health
+      </a>
+      <a routerLink="/executive-timeline" routerLinkActive="active" *ngIf="auth.user()?.role === 'ADMIN'">
+        <span class="nav-icon">T</span>
+        Today
+      </a>
+      <a routerLink="/daily-report" routerLinkActive="active" *ngIf="auth.user()?.role === 'ADMIN'">
+        <span class="nav-icon">R</span>
+        Daily report
+      </a>
+      <a routerLink="/demo-accounts" routerLinkActive="active" *ngIf="auth.user()?.role === 'ADMIN'">
+        <span class="nav-icon">D</span>
+        Demo accounts
+      </a>
+    </div>
+
+    <div class="nav-section">
+      <span class="nav-label">AI & Reports</span>
+      <a routerLink="/ai-dashboard" routerLinkActive="active">
+        <span class="nav-icon">AI</span>
+        Cockpit IA
+      </a>
+      <a routerLink="/prediction" routerLinkActive="active">
+        <span class="nav-icon">P</span>
+        Prediction
+      </a>
+      <a routerLink="/stock-health" routerLinkActive="active">
+        <span class="nav-icon">H</span>
+        Health score
+      </a>
+      <a routerLink="/copilot" routerLinkActive="active">
+        <span class="nav-icon">C</span>
+        Copilot
+      </a>
+      <a routerLink="/alerts" routerLinkActive="active">
+        <span class="nav-icon">A</span>
+        Alerts
+      </a>
+      <a routerLink="/reports" routerLinkActive="active">
+        <span class="nav-icon">R</span>
+        Reports
+      </a>
+    </div>
+
+    <div class="nav-footer">
+      <section class="notification-box" *ngIf="auth.user()?.role === 'ADMIN'">
+        <div class="notification-head">
+          <strong>Notifications</strong>
+          <a routerLink="/notifications" [class.critical]="notifications.hasCritical()">{{ notifications.unreadCount() }}</a>
+        </div>
+        <div class="notification-list" *ngIf="notifications.notifications().length; else noNotifications">
+          <button
+            type="button"
+            class="notification-item"
+            *ngFor="let notification of notifications.notifications()"
+            [class.critical]="notification.severity === 'CRITICAL'"
+            [class.read]="notification.readAt"
+            (click)="markNotificationRead(notification.id)"
+          >
+            <strong>{{ notification.title }}</strong>
+            <small>{{ notification.message }}</small>
+          </button>
+        </div>
+        <ng-template #noNotifications>
+          <small class="notification-empty">Aucune alerte admin.</small>
+        </ng-template>
+      </section>
+      <div class="user-chip">
+        <span>{{ auth.user()?.email?.charAt(0)?.toUpperCase() }}</span>
+        <div>
+          <strong>{{ auth.user()?.role }}</strong>
+          <small>{{ auth.user()?.email }}</small>
+        </div>
+      </div>
+      <button type="button" (click)="logout()">Deconnexion</button>
+    </div>
+  </ng-container>
+
+  <ng-template #publicLinks>
+    <div class="public-links">
+      <a routerLink="/login" routerLinkActive="active">Se connecter</a>
+      <a routerLink="/register" routerLinkActive="active" class="public-cta">S'inscrire</a>
+    </div>
+  </ng-template>
+</nav>

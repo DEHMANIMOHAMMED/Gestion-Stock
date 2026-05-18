@@ -1,0 +1,32 @@
+<section class="demo-page">
+  <header class="demo-header">
+    <div>
+      <p class="eyebrow">Demo data</p>
+      <h1>Comptes de demonstration</h1>
+    </div>
+    <a routerLink="/login">Se connecter</a>
+  </header>
+
+  <div class="loading" *ngIf="loading()">Chargement des scenarios...</div>
+
+  <section class="demo-grid">
+    <article class="demo-card" *ngFor="let account of accounts()">
+      <span>{{ account.scenario }}</span>
+      <h2>{{ account.organisation }}</h2>
+      <dl>
+        <div>
+          <dt>Admin</dt>
+          <dd>{{ account.adminEmail }}</dd>
+        </div>
+        <div>
+          <dt>User</dt>
+          <dd>{{ account.userEmail }}</dd>
+        </div>
+        <div>
+          <dt>Password</dt>
+          <dd>{{ account.password }}</dd>
+        </div>
+      </dl>
+    </article>
+  </section>
+</section>

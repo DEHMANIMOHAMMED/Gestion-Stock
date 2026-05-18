@@ -1,0 +1,76 @@
+<section class="onboarding-page">
+  <div class="profile-panel">
+    <div class="intro">
+      <span>StockPilot AI</span>
+      <h1>Configure ton organisation</h1>
+      <p>Ces informations personnalisent les alertes, les rapports IA et les workflows fournisseurs.</p>
+    </div>
+
+    <p class="message" *ngIf="message">{{ message }}</p>
+    <div class="loading" *ngIf="loading">Chargement du profil...</div>
+
+    <form [formGroup]="form" (ngSubmit)="submit()" *ngIf="!loading">
+      <label>
+        Nom de l'organisation
+        <input formControlName="name" />
+      </label>
+
+      <label>
+        Secteur
+        <select formControlName="industry">
+          <option value="">Choisir</option>
+          <option value="Retail">Boutique / commerce</option>
+          <option value="Garage">Garage</option>
+          <option value="Pharmacy">Pharmacie</option>
+          <option value="Manufacturing">Petit fabricant</option>
+          <option value="Services">Services</option>
+        </select>
+      </label>
+
+      <label>
+        Taille
+        <select formControlName="sizeRange">
+          <option value="">Choisir</option>
+          <option value="1-10">1-10 personnes</option>
+          <option value="11-50">11-50 personnes</option>
+          <option value="51-200">51-200 personnes</option>
+          <option value="200+">200+ personnes</option>
+        </select>
+      </label>
+
+      <label>
+        Telephone
+        <input formControlName="phone" />
+      </label>
+
+      <label class="wide">
+        Adresse
+        <input formControlName="address" />
+      </label>
+
+      <label>
+        Ville
+        <input formControlName="city" />
+      </label>
+
+      <label>
+        Pays
+        <input formControlName="country" />
+      </label>
+
+      <label>
+        Devise
+        <select formControlName="currency">
+          <option value="EUR">EUR</option>
+          <option value="USD">USD</option>
+          <option value="MAD">MAD</option>
+          <option value="GBP">GBP</option>
+        </select>
+      </label>
+
+      <button type="submit" [disabled]="form.invalid || saving">
+        {{ saving ? 'Enregistrement...' : 'Terminer la configuration' }}
+      </button>
+    </form>
+  </div>
+</section>

@@ -1,0 +1,64 @@
+<section class="ai-page">
+  <header class="ai-header">
+    <div>
+      <p class="eyebrow">Health score</p>
+      <h1>Sante stock par produit</h1>
+    </div>
+    <button type="button" class="action-button" (click)="load()">Actualiser</button>
+  </header>
+
+  <p class="error" *ngIf="message()">{{ message() }}</p>
+  <div class="loading" *ngIf="loading()">Calcul des scores...</div>
+
+  <section class="health-layout" *ngIf="!loading()">
+    <article class="ai-panel">
+      <table class="ai-table">
+        <thead>
+          <tr>
+            <th>Produit</th>
+            <th>Stock</th>
+            <th>Couverture</th>
+            <th>Risque</th>
+            <th>Score</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of rows()" (click)="pick(row)" [class.selected]="selected()?.productId === row.productId">
+            <td>{{ row.productName }}<small>{{ row.sku }}</small></td>
+            <td>{{ row.currentStock }} / {{ row.minStock }}</td>
+            <td>{{ row.stockCoverageDays }}j</td>
+            <td>{{ row.riskLevel }}</td>
+            <td>{{ row.healthScore }}</td>
+            <td>
+              <button type="button" class="ghost-action" (click)="createOrder(row); $event.stopPropagation()" [disabled]="!row.recommendationId || !!row.purchaseOrderId">
+                {{ row.purchaseOrderId ? 'Commande #' + row.purchaseOrderId : 'Commander' }}
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </article>
+
+    <aside class="ai-panel" *ngIf="selected() as row">
+      <h2>{{ row.productName }}</h2>
+      <dl class="health-detail">
+        <div><dt>Demande/jour</dt><dd>{{ row.averageDailyDemand }}</dd></div>
+        <div><dt>Prevision 30j</dt><dd>{{ row.forecast30Days }}</dd></div>
+        <div><dt>Fournisseur</dt><dd>{{ row.supplierName || '-' }}</dd></div>
+        <div><dt>Action IA</dt><dd>{{ row.actionRecommendation }}</dd></div>
+      </dl>
+
+      <h3>Simulation what-if</h3>
+      <label>Quantite commandee <input type="number" min="0" [ngModel]="orderQuantity()" (ngModelChange)="orderQuantity.set($event)" /></label>
+      <label>Lead time <input type="number" min="0" [ngModel]="leadTimeDays()" (ngModelChange)="leadTimeDays.set($event)" /></label>
+      <button type="button" class="action-button" (click)="simulate()">Simuler</button>
+
+      <div class="what-if" *ngIf="whatIfResult() as result">
+        <strong>{{ result.projectedCoverageDays }} jours de couverture</strong>
+        <span>Stock projete: {{ result.projectedStockAfterLeadTime }}</span>
+        <p>{{ result.recommendation }}</p>
+      </div>
+    </aside>
+  </section>
+</section>

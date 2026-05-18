@@ -1,0 +1,41 @@
+.decision-grid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 18px;
+}
+
+.risk-row {
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+  padding: 14px 0;
+
+  &:last-child {
+    border-bottom: 0;
+  }
+
+  strong,
+  small {
+    display: block;
+  }
+
+  small {
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  a {
+    color: var(--green-strong);
+    font-weight: 800;
+    text-decoration: none;
+  }
+}
+
+@media (max-width: 980px) {
+  .decision-grid {
+    grid-template-columns: 1fr;
+  }
+}

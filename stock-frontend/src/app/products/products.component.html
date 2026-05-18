@@ -1,0 +1,77 @@
+<div class="products-page">
+  <div class="products-head">
+    <div>
+      <p class="eyebrow">Inventory</p>
+      <h2>Produits</h2>
+    </div>
+    <div class="products-actions">
+      <label class="import-button">
+        Import CSV/Excel
+        <input type="file" accept=".csv,.xlsx,.xls" (change)="importProducts($event)" />
+      </label>
+      <button (click)="add()">Ajouter un produit</button>
+    </div>
+  </div>
+
+  <section class="import-help">
+    Format attendu: sku, name, category, minStock, unit, initialStock
+  </section>
+  <section class="import-preview" *ngIf="importPreview() as preview">
+    <div>
+      <h3>Preview import</h3>
+      <p>{{ preview.columns.length }} colonne(s) detectee(s)</p>
+    </div>
+    <div class="mapping-grid">
+      <span *ngFor="let item of preview.mapping" [class.missing]="!item.source">
+        {{ item.target }} -> {{ item.source || 'manquant' }}
+      </span>
+    </div>
+    <table *ngIf="preview.sampleRows.length">
+      <tbody>
+        <tr *ngFor="let row of preview.sampleRows">
+          <td *ngFor="let cell of row">{{ cell }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+  <p class="success" *ngIf="importMessage()">{{ importMessage() }}</p>
+  <ul class="error-list" *ngIf="importErrors().length">
+    <li *ngFor="let error of importErrors()">{{ error }}</li>
+  </ul>
+  <button type="button" class="error-download" *ngIf="importErrors().length" (click)="downloadImportErrors()">
+    Telecharger le rapport d'erreurs
+  </button>
+
+  <app-product-form
+    *ngIf="selected"
+    [product]="selected!"
+    (saved)="saved()"
+    (cancel)="cancel()"
+  ></app-product-form>
+
+  <table class="product-table" *ngIf="products().length > 0">
+    <thead>
+      <tr>
+        <th>Nom</th>
+        <th>SKU</th>
+        <th>Categorie</th>
+        <th>Min. stock</th>
+        <th>Unite</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let p of products()">
+        <td>{{ p.name }}</td>
+        <td>{{ p.sku }}</td>
+        <td>{{ p.category }}</td>
+        <td>{{ p.minStock }}</td>
+        <td>{{ p.unit }}</td>
+        <td>
+          <button (click)="edit(p)">Modifier</button>
+          <button (click)="delete(p)">Supprimer</button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>

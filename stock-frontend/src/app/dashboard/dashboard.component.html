@@ -1,0 +1,142 @@
+<section class="dashboard-page">
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">Pilotage stock</p>
+      <h1>Tableau de bord</h1>
+    </div>
+    <button type="button" class="refresh-button" (click)="load()">Actualiser</button>
+  </header>
+
+  <p class="error" *ngIf="error()">{{ error() }}</p>
+  <div class="loading" *ngIf="loading()">Chargement...</div>
+
+  <ng-container *ngIf="summary() as data">
+    <section class="metrics-grid">
+      <article class="metric">
+        <span>Produits</span>
+        <strong>{{ data.totalProducts }}</strong>
+      </article>
+      <article class="metric">
+        <span>Unites en stock</span>
+        <strong>{{ data.totalUnits }}</strong>
+      </article>
+      <article class="metric warning">
+        <span>Stock bas</span>
+        <strong>{{ data.lowStockProducts }}</strong>
+      </article>
+      <article class="metric danger">
+        <span>Ruptures</span>
+        <strong>{{ data.outOfStockProducts }}</strong>
+      </article>
+    </section>
+
+    <section class="ai-business-grid" *ngIf="aiDashboard() as ai">
+      <article class="panel executive-panel">
+        <div class="panel-header">
+          <h2>Vue dirigeant</h2>
+          <span>{{ ai.stockHealthAverage }} score moyen</span>
+        </div>
+        <div class="action-list" *ngIf="todayActions().length; else noAiAction">
+          <div class="action-item" *ngFor="let action of todayActions(); let i = index">
+            <b>{{ i + 1 }}</b>
+            <span>{{ action }}</span>
+          </div>
+        </div>
+        <ng-template #noAiAction>
+          <p class="empty">Aucune action IA prioritaire aujourd'hui.</p>
+        </ng-template>
+      </article>
+
+      <article class="panel">
+        <div class="panel-header">
+          <h2>Heatmap risques</h2>
+          <span>{{ ai.highRiskCount }} eleve(s)</span>
+        </div>
+        <div class="risk-heatmap">
+          <div
+            class="risk-cell"
+            *ngFor="let product of ai.topRisks"
+            [style.background]="healthColor(product)"
+            [title]="product.productName + ' - score ' + product.healthScore"
+          >
+            {{ product.sku }}
+          </div>
+        </div>
+      </article>
+
+      <article class="panel">
+        <div class="panel-header">
+          <h2>Timeline ruptures prevues</h2>
+          <span>{{ ai.criticalStockCount }} critique(s)</span>
+        </div>
+        <div class="timeline">
+          <div class="timeline-item" *ngFor="let product of ai.topRisks">
+            <strong>{{ product.productName }}</strong>
+            <div class="bar">
+              <i [style.width.%]="100 - product.healthScore"></i>
+            </div>
+            <small>{{ product.stockCoverageDays }}j couverture · risque {{ product.riskScore }}</small>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <section class="content-grid">
+      <div class="panel">
+        <div class="panel-header">
+          <h2>Alertes stock bas</h2>
+          <span>{{ criticalAlerts().length }} critique(s)</span>
+        </div>
+
+        <div class="empty" *ngIf="alerts().length === 0">Aucun produit sous son seuil.</div>
+
+        <table *ngIf="alerts().length > 0">
+          <thead>
+            <tr>
+              <th>Produit</th>
+              <th>SKU</th>
+              <th>Stock</th>
+              <th>Min.</th>
+              <th>A commander</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let alert of alerts()">
+              <td>{{ alert.name }}</td>
+              <td>{{ alert.sku }}</td>
+              <td>
+                <span class="stock-pill" [class.empty-stock]="alert.quantity === 0">
+                  {{ alert.quantity }}
+                </span>
+              </td>
+              <td>{{ alert.minStock }}</td>
+              <td>{{ alert.missingQuantity }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <h2>Mouvements recents</h2>
+          <span>{{ data.recentMovements.length }}</span>
+        </div>
+
+        <div class="empty" *ngIf="data.recentMovements.length === 0">Aucun mouvement enregistre.</div>
+
+        <ul class="movement-list" *ngIf="data.recentMovements.length > 0">
+          <li *ngFor="let movement of data.recentMovements">
+            <span class="movement-type" [class.out]="movement.type === 'OUT'" [class.adjust]="movement.type === 'ADJUST'">
+              {{ typeLabel(movement.type) }}
+            </span>
+            <div>
+              <strong>{{ movement.productName }}</strong>
+              <small>{{ movement.createdAt | date:'short' }}</small>
+            </div>
+            <b>{{ movement.quantity }}</b>
+          </li>
+        </ul>
+      </div>
+    </section>
+  </ng-container>
+</section>

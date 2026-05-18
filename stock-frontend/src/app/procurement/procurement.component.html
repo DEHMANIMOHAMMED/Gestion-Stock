@@ -1,0 +1,354 @@
+<section class="procurement-page">
+  <header class="page-header">
+    <div>
+      <p>Procurement</p>
+      <h1>Fournisseurs & commandes</h1>
+    </div>
+    <div class="header-actions">
+      <label class="secondary import-label">
+        Import fournisseurs
+        <input type="file" accept=".csv" (change)="importSuppliers($event)" />
+      </label>
+      <label class="secondary import-label">
+        Import commandes
+        <input type="file" accept=".csv" (change)="importPurchaseOrders($event)" />
+      </label>
+      <button type="button" class="secondary" (click)="exportAccounting()">Export comptable</button>
+      <button type="button" (click)="load()">Actualiser</button>
+    </div>
+  </header>
+
+  <p class="message" *ngIf="message()">{{ message() }}</p>
+  <section class="panel import-help" *ngIf="importErrors().length">
+    <div class="panel-title">
+      <h2>Rapport d'import</h2>
+      <button type="button" (click)="downloadImportErrors()">Telecharger</button>
+    </div>
+    <ul>
+      <li *ngFor="let error of importErrors()">{{ error }}</li>
+    </ul>
+  </section>
+  <div class="loading" *ngIf="loading()">Chargement des achats...</div>
+
+  <section class="forms-grid">
+    <form class="panel" (ngSubmit)="createSupplier()">
+      <h2>Nouveau fournisseur</h2>
+      <label>
+        Nom
+        <input name="supplierName" [(ngModel)]="supplierForm.name" required />
+      </label>
+      <label>
+        Email
+        <input name="supplierEmail" type="email" [(ngModel)]="supplierForm.email" />
+      </label>
+      <label>
+        Telephone
+        <input name="supplierPhone" [(ngModel)]="supplierForm.phone" />
+      </label>
+      <label>
+        Lead time jours
+        <input name="leadTimeDays" type="number" min="0" [(ngModel)]="supplierForm.leadTimeDays" required />
+      </label>
+      <button type="submit">Ajouter fournisseur</button>
+    </form>
+
+    <form class="panel" (ngSubmit)="createOrder()">
+      <h2>Nouvelle commande</h2>
+      <label>
+        Fournisseur
+        <select name="supplierId" [(ngModel)]="orderForm.supplierId" required>
+          <option *ngFor="let supplier of suppliers()" [ngValue]="supplier.id">{{ supplier.name }}</option>
+        </select>
+      </label>
+      <label>
+        Produit
+        <select name="productId" [(ngModel)]="orderForm.productId" required>
+          <option *ngFor="let product of products()" [ngValue]="product.id">{{ product.name }} - {{ product.sku }}</option>
+        </select>
+      </label>
+      <label>
+        Quantite
+        <input name="quantity" type="number" min="1" [(ngModel)]="orderForm.quantity" required />
+      </label>
+      <label>
+        Cout unite
+        <input name="unitCost" type="number" min="0" step="0.01" [(ngModel)]="orderForm.unitCost" />
+      </label>
+      <label>
+        Livraison prevue
+        <input name="expectedDeliveryDate" type="date" [(ngModel)]="orderForm.expectedDeliveryDate" />
+      </label>
+      <button type="submit" [disabled]="!suppliers().length || !products().length">Creer commande</button>
+    </form>
+
+    <form class="panel" (ngSubmit)="saveProductSupplier()">
+      <h2>Fournisseur prefere</h2>
+      <label>
+        Produit
+        <select name="preferredProductId" [(ngModel)]="productSupplierForm.productId" required>
+          <option *ngFor="let product of products()" [ngValue]="product.id">{{ product.name }} - {{ product.sku }}</option>
+        </select>
+      </label>
+      <label>
+        Fournisseur
+        <select name="preferredSupplierId" [(ngModel)]="productSupplierForm.supplierId" required>
+          <option *ngFor="let supplier of suppliers()" [ngValue]="supplier.id">{{ supplier.name }}</option>
+        </select>
+      </label>
+      <label>
+        Cout unite
+        <input name="preferredUnitCost" type="number" min="0" step="0.01" [(ngModel)]="productSupplierForm.unitCost" />
+      </label>
+      <label>
+        Minimum commande
+        <input name="minimumOrderQuantity" type="number" min="1" [(ngModel)]="productSupplierForm.minimumOrderQuantity" required />
+      </label>
+      <label class="inline-check">
+        <input name="preferred" type="checkbox" [(ngModel)]="productSupplierForm.preferred" />
+        Fournisseur prioritaire pour ce produit
+      </label>
+      <button type="submit" [disabled]="!suppliers().length || !products().length">Enregistrer preference</button>
+    </form>
+
+    <form class="panel" (ngSubmit)="saveSla()">
+      <h2>SLA fournisseur</h2>
+      <label>
+        Fournisseur
+        <select name="slaSupplierId" [(ngModel)]="slaForm.supplierId" required>
+          <option *ngFor="let supplier of suppliers()" [ngValue]="supplier.id">{{ supplier.name }}</option>
+        </select>
+      </label>
+      <label>
+        Lead time cible
+        <input name="slaLeadTime" type="number" min="0" [(ngModel)]="slaForm.targetLeadTimeDays" required />
+      </label>
+      <label>
+        Taux a temps cible %
+        <input name="slaOnTime" type="number" min="0" max="100" [(ngModel)]="slaForm.targetOnTimeRate" required />
+      </label>
+      <label>
+        Taux conforme cible %
+        <input name="slaConformity" type="number" min="0" max="100" [(ngModel)]="slaForm.targetConformityRate" required />
+      </label>
+      <label>
+        Notes
+        <input name="slaNotes" [(ngModel)]="slaForm.notes" />
+      </label>
+      <button type="submit" [disabled]="!suppliers().length">Enregistrer SLA</button>
+    </form>
+  </section>
+
+  <section class="panel">
+    <h2>Comparaison fournisseurs par produit</h2>
+    <table class="procurement-table" *ngIf="supplierComparisons().length; else emptyComparison">
+      <thead>
+        <tr>
+          <th>Produit</th>
+          <th>Fournisseur</th>
+          <th>Cout</th>
+          <th>Lead time</th>
+          <th>Fiabilite</th>
+          <th>Score</th>
+          <th>Decision</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let row of supplierComparisons()">
+          <td>{{ row.productName }} <small>{{ row.sku }}</small></td>
+          <td><a [routerLink]="['/suppliers', row.supplierId, '360']">{{ row.supplierName }}</a></td>
+          <td>{{ row.unitCost ?? '-' }}</td>
+          <td>{{ row.leadTimeDays ?? '-' }}j</td>
+          <td>
+            <small>{{ row.onTimeRate }}% a temps</small>
+            <small>{{ row.conformityRate }}% conforme</small>
+          </td>
+          <td>{{ row.supplierScore }}</td>
+          <td>
+            <span class="status" [class.done]="row.bestAlternative">{{ row.bestAlternative ? 'Meilleur choix IA' : 'Alternative' }}</span>
+            <small>{{ row.recommendation }}</small>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <ng-template #emptyComparison>
+      <p class="empty">Aucun fournisseur comparable pour les produits.</p>
+    </ng-template>
+  </section>
+
+  <section class="panel">
+    <h2>SLA actifs</h2>
+    <table class="procurement-table" *ngIf="supplierSlas().length; else emptySla">
+      <thead>
+        <tr>
+          <th>Fournisseur</th>
+          <th>Lead time cible</th>
+          <th>A temps</th>
+          <th>Conforme</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let sla of supplierSlas()">
+          <td>{{ sla.supplierName }}</td>
+          <td>{{ sla.targetLeadTimeDays }}j</td>
+          <td>{{ sla.targetOnTimeRate }}%</td>
+          <td>{{ sla.targetConformityRate }}%</td>
+          <td>{{ sla.notes || '-' }}</td>
+        </tr>
+      </tbody>
+    </table>
+    <ng-template #emptySla>
+      <p class="empty">Aucun SLA fournisseur configure.</p>
+    </ng-template>
+  </section>
+
+  <section class="panel">
+    <h2>Preferences produit-fournisseur</h2>
+    <table class="procurement-table" *ngIf="productSuppliers().length; else emptyProductSuppliers">
+      <thead>
+        <tr>
+          <th>Produit</th>
+          <th>Fournisseur</th>
+          <th>Cout</th>
+          <th>Min.</th>
+          <th>Lead time</th>
+          <th>Score</th>
+          <th>Historique</th>
+          <th>Priorite</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let row of productSuppliers()">
+          <td>{{ row.productName }} <small>{{ row.sku }}</small></td>
+          <td><a [routerLink]="['/suppliers', row.supplierId, '360']">{{ row.supplierName }}</a></td>
+          <td>{{ row.unitCost ?? '-' }}</td>
+          <td>{{ row.minimumOrderQuantity }}</td>
+          <td>{{ row.supplierLeadTimeDays ?? '-' }}j</td>
+          <td>{{ row.supplierScore }}</td>
+          <td>
+            <small>{{ row.onTimeRate }}% a temps</small>
+            <small>{{ row.conformityRate }}% conforme</small>
+            <small>{{ row.scoreExplanation }}</small>
+          </td>
+          <td><span class="status" [class.done]="row.preferred">{{ row.preferred ? 'Prefere' : 'Secondaire' }}</span></td>
+        </tr>
+      </tbody>
+    </table>
+    <ng-template #emptyProductSuppliers>
+      <p class="empty">Aucune preference produit-fournisseur.</p>
+    </ng-template>
+  </section>
+
+  <section class="panel">
+    <h2>Commandes fournisseur</h2>
+    <table class="procurement-table" *ngIf="orders().length; else emptyOrders">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Fournisseur</th>
+          <th>Statut</th>
+          <th>Lignes</th>
+          <th>Livraison</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <ng-container *ngFor="let order of orders()">
+          <tr>
+            <td>#{{ order.id }}</td>
+            <td><a [routerLink]="['/suppliers', order.supplierId, '360']">{{ order.supplierName }}</a></td>
+            <td>
+              <span
+                class="status"
+                [class.draft]="order.status === 'DRAFT'"
+                [class.done]="order.status === 'RECEIVED'"
+              >
+                {{ order.status }}
+              </span>
+            </td>
+            <td>
+              <span *ngFor="let line of order.lines" class="line-item">
+                {{ line.productName }} x{{ line.quantity }}
+                <small>recu {{ line.receivedQuantity }}/{{ line.quantity }}</small>
+                <input
+                  *ngIf="order.status === 'DRAFT'"
+                  type="number"
+                  min="1"
+                  [ngModel]="draftQuantities()[line.id]"
+                  (ngModelChange)="setDraftQuantity(line.id, $event)"
+                  [ngModelOptions]="{ standalone: true }"
+                />
+                <input
+                  *ngIf="order.status === 'ORDERED' && remaining(line) > 0"
+                  type="number"
+                  min="1"
+                  [max]="remaining(line)"
+                  [ngModel]="receiveQuantities()[line.id]"
+                  (ngModelChange)="setReceiveQuantity(line.id, $event)"
+                  [ngModelOptions]="{ standalone: true }"
+                />
+              </span>
+            </td>
+            <td>{{ order.expectedDeliveryDate || '-' }}</td>
+            <td>
+              <div class="row-actions">
+                <button type="button" *ngIf="order.status === 'DRAFT'" (click)="updateDraft(order)">
+                  Enregistrer
+                </button>
+                <button type="button" *ngIf="order.status === 'DRAFT'" (click)="confirm(order)">
+                  Commander direct
+                </button>
+                <button type="button" *ngIf="order.status === 'DRAFT'" (click)="approve(order)">
+                  Approuver
+                </button>
+                <button type="button" *ngIf="order.status === 'APPROVED'" (click)="confirm(order)">
+                  Confirmer
+                </button>
+                <button type="button" *ngIf="order.status === 'ORDERED'" (click)="receive(order)">
+                  Reception partielle
+                </button>
+                <button type="button" *ngIf="order.status === 'ORDERED'" (click)="receiveAll(order)">
+                  Tout receptionner
+                </button>
+                <button type="button" (click)="downloadPdf(order)">
+                  PDF
+                </button>
+                <button type="button" (click)="toggleAudit(order)">
+                  Audit
+                </button>
+                <button
+                  type="button"
+                  *ngIf="order.status === 'DRAFT' || order.status === 'APPROVED' || order.status === 'ORDERED'"
+                  (click)="cancel(order)"
+                >
+                  Annuler
+                </button>
+                <span *ngIf="order.status === 'RECEIVED'">Terminee</span>
+                <span *ngIf="order.status === 'CANCELLED'">Annulee</span>
+              </div>
+            </td>
+          </tr>
+          <tr *ngIf="expandedAuditOrderId() === order.id" class="audit-row">
+            <td colspan="6">
+              <div class="audit-log" *ngIf="auditLogs()[order.id]?.length; else emptyAudit">
+                <div class="audit-entry" *ngFor="let log of auditLogs()[order.id]">
+                  <strong>{{ log.action }}</strong>
+                  <span>{{ log.previousStatus || 'NEW' }} -> {{ log.newStatus }}</span>
+                  <span>{{ log.actorEmail }} · {{ log.actorRole }}</span>
+                  <span>{{ log.orderTotal }} €</span>
+                  <small>{{ log.createdAt | date:'short' }}</small>
+                </div>
+              </div>
+              <ng-template #emptyAudit>
+                <p class="empty">Aucun changement de statut enregistre.</p>
+              </ng-template>
+            </td>
+          </tr>
+        </ng-container>
+      </tbody>
+    </table>
+    <ng-template #emptyOrders>
+      <p class="empty">Aucune commande fournisseur.</p>
+    </ng-template>
+  </section>
+</section>

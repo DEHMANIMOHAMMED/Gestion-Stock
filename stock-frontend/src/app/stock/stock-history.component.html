@@ -1,0 +1,68 @@
+<div class="history-section">
+  <h3>Historique des mouvements</h3>
+
+  <div class="filters">
+    <label>
+      Produit :
+      <select
+        [ngModel]="filters.productId"
+        (ngModelChange)="onProductChange($event)"
+      >
+        <option [ngValue]="null">Tous</option>
+        <option *ngFor="let p of products()" [ngValue]="p.id">
+          {{ p.name }}
+        </option>
+      </select>
+    </label>
+
+    <label>
+      Type :
+      <select
+        [ngModel]="filters.type"
+        (ngModelChange)="onTypeChange($event)"
+      >
+        <option [ngValue]="null">Tous</option>
+        <option value="IN">Entree</option>
+        <option value="OUT">Sortie</option>
+        <option value="ADJUST">Ajustement</option>
+      </select>
+    </label>
+
+    <button (click)="exportCsv()">Exporter CSV</button>
+    <button (click)="exportPdf()">Exporter PDF</button>
+  </div>
+
+  <table class="history-table" *ngIf="history().length > 0">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Produit</th>
+        <th>Quantite</th>
+        <th>Type</th>
+        <th>Date</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      <tr *ngFor="let m of history()">
+        <td>{{ m.id }}</td>
+        <td>{{ productNameById(m.productId) }}</td>
+        <td>{{ m.quantity }}</td>
+        <td>{{ m.type }}</td>
+        <td>{{ m.createdAt | date:'short' }}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="pagination" *ngIf="history().length > 0">
+    <button (click)="previousPage()" [disabled]="page === 0">
+      Precedent
+    </button>
+
+    <span>Page {{ currentPage }} / {{ totalPages }}</span>
+
+    <button (click)="nextPage()" [disabled]="page + 1 >= totalPages">
+      Suivant
+    </button>
+  </div>
+</div>

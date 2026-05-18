@@ -1,0 +1,179 @@
+<main class="page-shell">
+  <section class="page-hero">
+    <div>
+      <p class="eyebrow">Executive cockpit</p>
+      <h1>What happened today</h1>
+      <p>Une vue decisionnelle qui regroupe audits, alertes, commandes, risques IA et actions a faire.</p>
+    </div>
+    <button type="button" (click)="load()" [disabled]="loading()">
+      {{ loading() ? 'Actualisation...' : 'Actualiser' }}
+    </button>
+  </section>
+
+  <p class="error" *ngIf="error()">{{ error() }}</p>
+  <p class="message" *ngIf="message()">{{ message() }}</p>
+
+  <ng-container *ngIf="timeline() as timeline">
+    <section class="summary-strip">
+      <div>
+        <span>Resume IA quotidien</span>
+        <strong>{{ timeline.executiveSummary }}</strong>
+      </div>
+      <ul>
+        <li *ngFor="let decision of timeline.keyDecisions">{{ decision }}</li>
+      </ul>
+    </section>
+
+    <section class="metrics-grid">
+      <article class="critical">
+        <span>Risques critiques</span>
+        <strong>{{ timeline.criticalRisks }}</strong>
+        <small>Ruptures IA a traiter</small>
+      </article>
+      <article>
+        <span>Notifications ouvertes</span>
+        <strong>{{ timeline.openNotifications }}</strong>
+        <small>Alertes admin</small>
+      </article>
+      <article>
+        <span>Commandes en cours</span>
+        <strong>{{ timeline.pendingOrders }}</strong>
+        <small>DRAFT, APPROVED, ORDERED</small>
+      </article>
+      <article>
+        <span>Recos IA libres</span>
+        <strong>{{ timeline.pendingRecommendations }}</strong>
+        <small>A convertir en commande</small>
+      </article>
+    </section>
+
+    <section class="content-grid">
+      <article class="panel actions-panel">
+        <header>
+          <div>
+            <h2>Actions recommandees</h2>
+            <small>{{ timeline.date | date:'fullDate' }}</small>
+          </div>
+        </header>
+        <div class="actions-list">
+          <a class="action-card" *ngFor="let action of timeline.actions" [routerLink]="action.route" [class]="action.priority.toLowerCase()">
+            <span>{{ action.priority }}</span>
+            <strong>{{ action.title }}</strong>
+            <small>{{ action.description }}</small>
+          </a>
+        </div>
+      </article>
+
+      <article class="panel timeline-panel">
+        <header>
+          <div>
+            <h2>Timeline</h2>
+            <small>{{ timeline.items.length }} evenement(s) consolide(s)</small>
+          </div>
+        </header>
+
+        <div class="timeline-list" *ngIf="timeline.items.length; else emptyTimeline">
+          <div class="timeline-item" *ngFor="let item of timeline.items" [class]="item.severity.toLowerCase()">
+            <div class="marker"></div>
+            <div class="timeline-card">
+              <div class="item-head">
+                <span class="type">{{ typeLabel(item.type) }}</span>
+                <span class="severity">{{ severityLabel(item.severity) }}</span>
+              </div>
+              <strong>{{ item.title }}</strong>
+              <p>{{ item.description }}</p>
+              <div class="item-meta">
+                <small>{{ item.occurredAt | date:'short' }}</small>
+                <small>Priorite {{ item.priorityScore }}/100</small>
+                <small *ngIf="item.productId">Produit #{{ item.productId }}</small>
+                <small *ngIf="item.purchaseOrderId">Commande #{{ item.purchaseOrderId }}</small>
+                <small *ngIf="item.supplierId">Fournisseur #{{ item.supplierId }}</small>
+              </div>
+              <div class="quick-actions">
+                <button
+                  type="button"
+                  *ngIf="item.notificationId"
+                  (click)="markNotificationRead(item)"
+                  [disabled]="actionLoading() === 'notification-' + item.notificationId"
+                >
+                  Marquer lue
+                </button>
+                <a *ngIf="item.purchaseOrderId" routerLink="/procurement">Ouvrir commande</a>
+                <a *ngIf="item.supplierId" [routerLink]="['/suppliers', item.supplierId, '360']">Voir fournisseur</a>
+                <button
+                  type="button"
+                  *ngIf="item.recommendationId"
+                  (click)="createOrder(item)"
+                  [disabled]="actionLoading() === 'recommendation-' + item.recommendationId"
+                >
+                  Transformer en commande
+                </button>
+                <button
+                  type="button"
+                  *ngIf="item.recommendationId"
+                  (click)="explainRecommendation(item)"
+                  [disabled]="actionLoading() === 'explain-' + item.recommendationId"
+                >
+                  Expliquer IA
+                </button>
+                <a *ngIf="item.productId" routerLink="/copilot">Demander au Copilot</a>
+              </div>
+              <div class="what-if-inline" *ngIf="item.productId && item.type === 'AI_RISK'">
+                <label>
+                  Qté
+                  <input type="number" min="1" [(ngModel)]="whatIfQuantities[item.productId]" [value]="defaultQuantity(item)" />
+                </label>
+                <label>
+                  Lead time
+                  <input type="number" min="1" [(ngModel)]="whatIfLeadTimes[item.productId]" [value]="defaultLeadTime(item)" />
+                </label>
+                <button
+                  type="button"
+                  (click)="simulateWhatIf(item)"
+                  [disabled]="actionLoading() === 'what-if-' + item.productId"
+                >
+                  Simuler
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <ng-template #emptyTimeline>
+          <p class="empty">Aucun evenement important consolide aujourd'hui.</p>
+        </ng-template>
+      </article>
+    </section>
+
+    <section class="result-grid" *ngIf="explanation() || whatIfResult()">
+      <article class="panel result-panel" *ngIf="explanation() as explanation">
+        <header>
+          <h2>Explication IA</h2>
+          <small>Reco #{{ explanation.recommendationId }}</small>
+        </header>
+        <div class="result-body">
+          <strong>{{ explanation.summary }}</strong>
+          <p>{{ explanation.nextAction }}</p>
+          <ul>
+            <li *ngFor="let driver of explanation.drivers">{{ driver }}</li>
+          </ul>
+        </div>
+      </article>
+
+      <article class="panel result-panel" *ngIf="whatIfResult() as result">
+        <header>
+          <h2>Simulation what-if</h2>
+          <small>{{ result.productName }}</small>
+        </header>
+        <div class="result-body">
+          <strong>{{ result.projectedCoverageDays }} jours de couverture projetee</strong>
+          <p>{{ result.recommendation }}</p>
+          <div class="result-metrics">
+            <span>Actuel {{ result.currentCoverageDays }}j</span>
+            <span>Apres lead time {{ result.projectedStockAfterLeadTime }} u.</span>
+          </div>
+        </div>
+      </article>
+    </section>
+  </ng-container>
+</main>

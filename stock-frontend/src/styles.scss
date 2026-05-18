@@ -1,0 +1,50 @@
+:root {
+  --bg: #eef3f1;
+  --surface: #ffffff;
+  --surface-soft: #f7faf9;
+  --line: #e3e9e6;
+  --text: #17202a;
+  --muted: #73808c;
+  --green: #43a047;
+  --green-strong: #2f8a38;
+  --green-soft: #eaf6ed;
+  --blue: #4f6df5;
+  --amber: #d99418;
+  --red: #d64545;
+  --shadow: 0 18px 45px rgba(27, 43, 39, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: Inter, "Segoe UI", Arial, sans-serif;
+  margin: 0;
+}
+
+a {
+  color: inherit;
+}
+
+table {
+  border-collapse: collapse;
+  font-size: 14px;
+  width: 100%;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+button {
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+button:not(:disabled):hover {
+  transform: translateY(-1px);
+}

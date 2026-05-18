@@ -1,0 +1,278 @@
+.notification-center-page {
+  display: grid;
+  gap: 22px;
+}
+
+.page-header,
+.preferences-panel,
+.filters-panel,
+.notification-card,
+.message,
+.loading,
+.empty {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  padding: 24px;
+}
+
+.page-header {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+
+  p {
+    color: var(--green-strong);
+    font-size: 12px;
+    font-weight: 900;
+    margin: 0;
+    text-transform: uppercase;
+  }
+
+  h1 {
+    font-size: 34px;
+    margin: 6px 0 0;
+  }
+}
+
+button,
+a {
+  border-radius: 12px;
+  font-weight: 900;
+  min-height: 42px;
+  padding: 0 16px;
+}
+
+button {
+  background: var(--green);
+  border: 0;
+  color: #fff;
+  cursor: pointer;
+}
+
+a {
+  align-items: center;
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  color: var(--green-strong);
+  display: inline-flex;
+  text-decoration: none;
+}
+
+.preferences-panel {
+  align-items: center;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 1fr auto auto auto;
+
+  h2 {
+    margin: 0 0 8px;
+  }
+
+  p {
+    color: var(--muted);
+    margin: 0;
+  }
+}
+
+.toggle-row {
+  align-items: center;
+  color: var(--text);
+  display: flex;
+  font-weight: 800;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.filters-panel {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+label {
+  color: var(--muted);
+  display: grid;
+  font-size: 13px;
+  font-weight: 800;
+  gap: 7px;
+}
+
+select {
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--text);
+  min-height: 42px;
+  padding: 0 12px;
+}
+
+input {
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--text);
+  min-height: 42px;
+  padding: 0 12px;
+}
+
+.notification-list {
+  display: grid;
+  gap: 14px;
+}
+
+.notification-card {
+  border-left: 5px solid #d0d7de;
+  display: grid;
+  gap: 16px;
+}
+
+.notification-card.critical {
+  border-left-color: #b42318;
+}
+
+.notification-card.read {
+  opacity: 0.68;
+}
+
+.card-main {
+  align-items: flex-start;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+}
+
+.eyebrow {
+  color: var(--green-strong);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+h2 {
+  margin: 6px 0;
+}
+
+p,
+.meta-row,
+.message,
+.loading,
+.empty {
+  color: var(--muted);
+}
+
+.severity {
+  background: #eef3ff;
+  border-radius: 999px;
+  color: #3157c9;
+  font-size: 12px;
+  font-weight: 900;
+  padding: 6px 10px;
+}
+
+.critical .severity {
+  background: #fff0ed;
+  color: #b42318;
+}
+
+.meta-row,
+.row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.meta-row {
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.dismiss-panel {
+  align-items: end;
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 1fr auto;
+  padding: 14px;
+}
+
+button.secondary {
+  background: #fff0ed;
+  color: #b42318;
+}
+
+button.ghost {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--text);
+}
+
+.action-history {
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+
+  strong {
+    color: var(--text);
+  }
+
+  ul {
+    display: grid;
+    gap: 8px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  li {
+    align-items: center;
+    color: var(--muted);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  b {
+    color: var(--green-strong);
+  }
+
+  em {
+    color: var(--text);
+    font-style: normal;
+  }
+}
+
+.dismissal {
+  background: rgba(180, 35, 24, 0.08);
+  border-radius: 12px;
+  color: #b42318;
+  font-weight: 800;
+  margin: 0;
+  padding: 12px 14px;
+}
+
+@media (max-width: 1000px) {
+  .preferences-panel,
+  .filters-panel,
+  .dismiss-panel {
+    align-items: stretch;
+    grid-template-columns: 1fr;
+  }
+
+  .toggle-row {
+    white-space: normal;
+  }
+}
+
+@media (max-width: 700px) {
+  .page-header,
+  .card-main {
+    display: grid;
+  }
+}

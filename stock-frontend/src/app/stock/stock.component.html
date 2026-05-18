@@ -1,0 +1,29 @@
+<div class="stock-page">
+  <h2>Stock</h2>
+  <table class="stock-table" *ngIf="products().length > 0">
+    <thead>
+      <tr>
+        <th>Produit</th>
+        <th>Quantite</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let p of products()">
+        <td>{{ p.name }}</td>
+        <td>{{ stockMap()[p.id] ?? 0 }}</td>
+        <td>
+          <button (click)="openMovement(p.id)">Mouvement</button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <app-movement-form
+    *ngIf="showForm && selectedProductId"
+    [productId]="selectedProductId"
+    (closed)="formClosed()"
+  ></app-movement-form>
+
+  <app-stock-history></app-stock-history>
+</div>

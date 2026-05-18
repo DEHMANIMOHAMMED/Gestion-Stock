@@ -1,0 +1,89 @@
+<main class="page-shell">
+  <section class="page-hero">
+    <div>
+      <p class="eyebrow">Daily report</p>
+      <h1>Rapport dirigeant</h1>
+      <p>Archive par date des risques, decisions, notifications, commandes et actions IA.</p>
+    </div>
+    <div class="hero-actions">
+      <label>
+        Date
+        <input type="date" [ngModel]="selectedDate()" (ngModelChange)="selectedDate.set($event); load()" />
+      </label>
+      <button type="button" (click)="load()" [disabled]="loading()">{{ loading() ? 'Chargement...' : 'Recharger' }}</button>
+      <button type="button" class="ghost" (click)="exportCsv()">CSV</button>
+      <button type="button" class="ghost" (click)="exportPdf()">PDF</button>
+    </div>
+  </section>
+
+  <p class="error" *ngIf="error()">{{ error() }}</p>
+  <p class="message" *ngIf="message()">{{ message() }}</p>
+
+  <ng-container *ngIf="report() as report">
+    <section class="summary-panel">
+      <div>
+        <span>Resume</span>
+        <strong>{{ report.executiveSummary }}</strong>
+      </div>
+      <ul>
+        <li *ngFor="let decision of report.keyDecisions">{{ decision }}</li>
+      </ul>
+    </section>
+
+    <section class="metrics-grid">
+      <article>
+        <span>Risques critiques</span>
+        <strong>{{ report.criticalRisks }}</strong>
+      </article>
+      <article>
+        <span>Notifications</span>
+        <strong>{{ report.openNotifications }}</strong>
+      </article>
+      <article>
+        <span>Commandes</span>
+        <strong>{{ report.pendingOrders }}</strong>
+      </article>
+      <article>
+        <span>Recos IA</span>
+        <strong>{{ report.pendingRecommendations }}</strong>
+      </article>
+    </section>
+
+    <section class="panel">
+      <header>
+        <div>
+          <h2>Evenements du {{ report.date | date:'fullDate' }}</h2>
+          <small>{{ report.items.length }} ligne(s) exportables</small>
+        </div>
+        <a routerLink="/executive-timeline">Voir la timeline actionnable</a>
+      </header>
+      <div class="table-wrap" *ngIf="report.items.length; else emptyReport">
+        <table>
+          <thead>
+            <tr>
+              <th>Heure</th>
+              <th>Priorite</th>
+              <th>Type</th>
+              <th>Severite</th>
+              <th>Titre</th>
+              <th>Details</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of report.items">
+              <td>{{ item.occurredAt | date:'shortTime' }}</td>
+              <td>{{ item.priorityScore }}</td>
+              <td>{{ item.type }}</td>
+              <td><span class="badge" [class]="item.severity.toLowerCase()">{{ severityLabel(item.severity) }}</span></td>
+              <td>{{ item.title }}</td>
+              <td>{{ item.description }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <ng-template #emptyReport>
+        <p class="empty">Aucun evenement pour cette date.</p>
+      </ng-template>
+    </section>
+  </ng-container>
+</main>

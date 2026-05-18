@@ -1,0 +1,76 @@
+.movement-form {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  margin-top: 18px;
+  padding: 22px;
+
+  h3 {
+    font-size: 18px;
+    margin: 0 0 14px;
+  }
+
+  form {
+    display: grid;
+    gap: 10px 14px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  label {
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+
+  input,
+  select {
+    background: var(--surface-soft);
+    border: 1px solid var(--line);
+    border-radius: 11px;
+    min-height: 44px;
+    padding: 0 12px;
+    width: 100%;
+  }
+
+  .error,
+  .buttons {
+    grid-column: 1 / -1;
+  }
+
+  .error {
+    color: var(--red);
+    margin-top: 4px;
+  }
+
+  .buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+
+    button {
+      border: 0;
+      border-radius: 11px;
+      cursor: pointer;
+      font-weight: 800;
+      padding: 11px 16px;
+    }
+
+    button:first-child {
+      background: var(--green);
+      color: white;
+    }
+
+    button:last-child {
+      background: #f1f4f3;
+      color: var(--text);
+    }
+  }
+}
+
+@media (max-width: 760px) {
+  .movement-form form {
+    grid-template-columns: 1fr;
+  }
+}

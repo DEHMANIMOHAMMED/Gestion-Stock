@@ -1,0 +1,18 @@
+<div class="movement-form">
+  <h3>Enregistrer un mouvement</h3>
+  <form [formGroup]="form" (ngSubmit)="save()">
+    <label>Quantite :</label>
+    <input type="text" inputmode="numeric" formControlName="quantity" />
+    <label>Type :</label>
+    <select formControlName="type">
+      <option value="IN">Entree</option>
+      <option value="OUT">Sortie</option>
+      <option value="ADJUST">Ajustement</option>
+    </select>
+    <div *ngIf="message" class="error">{{ message }}</div>
+    <div class="buttons">
+      <button type="submit" [disabled]="form.invalid">Enregistrer</button>
+      <button type="button" (click)="closed.emit()">Annuler</button>
+    </div>
+  </form>
+</div>

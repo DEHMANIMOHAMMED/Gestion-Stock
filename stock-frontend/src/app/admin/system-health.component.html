@@ -1,0 +1,93 @@
+<main class="page-shell">
+  <section class="page-hero">
+    <div>
+      <p class="eyebrow">Admin ops</p>
+      <h1>System health</h1>
+      <p>Etat des services StockPilot AI, derniere execution IA et signaux operationnels.</p>
+    </div>
+    <button type="button" (click)="load()" [disabled]="loading()">
+      {{ loading() ? 'Verification...' : 'Verifier maintenant' }}
+    </button>
+  </section>
+
+  <p class="error" *ngIf="error()">{{ error() }}</p>
+
+  <ng-container *ngIf="health() as health">
+    <section class="status-banner" [class.degraded]="health.overallStatus !== 'UP'">
+      <div>
+        <span class="status-dot" [class.down]="health.overallStatus !== 'UP'"></span>
+        <strong>{{ health.overallStatus === 'UP' ? 'Plateforme operationnelle' : 'Plateforme degradee' }}</strong>
+      </div>
+      <small>Derniere verification {{ health.checkedAt | date:'short' }}</small>
+    </section>
+
+    <section class="metrics-grid">
+      <article>
+        <span>Produits</span>
+        <strong>{{ health.productsCount }}</strong>
+        <small>Catalogue tenant</small>
+      </article>
+      <article>
+        <span>Stocks</span>
+        <strong>{{ health.stocksCount }}</strong>
+        <small>Lignes suivies</small>
+      </article>
+      <article>
+        <span>Commandes</span>
+        <strong>{{ health.purchaseOrdersCount }}</strong>
+        <small>Fournisseurs</small>
+      </article>
+      <article>
+        <span>Notifications</span>
+        <strong>{{ health.unreadAdminNotifications }}</strong>
+        <small>Non lues admin</small>
+      </article>
+    </section>
+
+    <section class="content-grid">
+      <article class="panel">
+        <header>
+          <h2>Services</h2>
+          <span>{{ degradedServices().length }} incident(s)</span>
+        </header>
+        <div class="service-list">
+          <div class="service-row" *ngFor="let service of health.services">
+            <div>
+              <strong>{{ service.name }}</strong>
+              <small>{{ service.detail }}</small>
+            </div>
+            <div class="service-meta">
+              <span class="badge" [class]="statusClass(service.status)">{{ service.status }}</span>
+              <small>{{ service.latencyMs }} ms</small>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="panel">
+        <header>
+          <h2>Dernier run IA</h2>
+          <span *ngIf="health.latestAiRun">#{{ health.latestAiRun.id }}</span>
+        </header>
+        <ng-container *ngIf="health.latestAiRun; else noRun">
+          <div class="run-card">
+            <span class="badge" [class]="statusClass(health.latestAiRun.status)">{{ health.latestAiRun.status }}</span>
+            <strong>{{ health.latestAiRun.triggerType }} - {{ health.latestAiRun.modelSource }}</strong>
+            <small>Demarre {{ health.latestAiRun.startedAt | date:'short' }}</small>
+            <small *ngIf="health.latestAiRun.completedAt">Termine {{ health.latestAiRun.completedAt | date:'short' }}</small>
+            <p *ngIf="health.latestAiRun.errorMessage">{{ health.latestAiRun.errorMessage }}</p>
+          </div>
+          <div class="run-metrics">
+            <span>{{ health.latestAiRun.forecastsCount }} forecasts</span>
+            <span>{{ health.latestAiRun.risksCount }} risques</span>
+            <span>{{ health.latestAiRun.recommendationsCount }} recos</span>
+            <span>{{ health.latestAiRun.anomaliesCount }} anomalies</span>
+          </div>
+        </ng-container>
+        <ng-template #noRun>
+          <p class="empty">Aucun run IA encore disponible.</p>
+        </ng-template>
+      </article>
+    </section>
+  </ng-container>
+</main>

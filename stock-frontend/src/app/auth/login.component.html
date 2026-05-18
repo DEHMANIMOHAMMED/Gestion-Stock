@@ -1,0 +1,48 @@
+<section class="auth-screen">
+  <div class="auth-panel">
+    <div class="auth-brand">
+      <span>GS</span>
+      <strong>Gestion Stock</strong>
+    </div>
+
+    <div class="auth-copy">
+      <p>Welcome back</p>
+      <h2>Log in to your account</h2>
+      <span>Track inventory, alerts and AI insights from one workspace.</span>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="login()">
+      <label for="email">Email</label>
+      <input id="email" type="text" inputmode="email" formControlName="email" autocomplete="email" placeholder="admin@example.com" />
+      <div *ngIf="fieldInvalid('email')" class="field-error">Email valide requis.</div>
+
+      <label for="password">Mot de passe</label>
+      <input id="password" type="password" formControlName="password" autocomplete="current-password" placeholder="Votre mot de passe" />
+      <div *ngIf="fieldInvalid('password')" class="field-error">Mot de passe requis.</div>
+
+      <div *ngIf="message" class="error">{{ message }}</div>
+      <button type="submit" [disabled]="loading || form.invalid">{{ loading ? 'Connexion...' : 'Se connecter' }}</button>
+    </form>
+    <div class="oauth-divider"><span>ou</span></div>
+    <div id="google-login-button" class="google-button" aria-label="Connexion Google"></div>
+    <p class="auth-switch">Pas de compte ? <a routerLink="/register">Creer un compte</a></p>
+  </div>
+
+  <aside class="auth-visual">
+    <div class="visual-card visual-chart">
+      <span>Stock health</span>
+      <strong>92%</strong>
+      <div class="bars">
+        <i></i><i></i><i></i><i></i><i></i><i></i>
+      </div>
+    </div>
+    <div class="visual-card visual-donut">
+      <span>AI forecast</span>
+      <strong>18 low-risk SKUs</strong>
+    </div>
+    <div class="visual-text">
+      <h3>Very simple way to manage inventory</h3>
+      <p>Sales, stock movements, alerts and predictions in a calm SaaS interface.</p>
+    </div>
+  </aside>
+</section>

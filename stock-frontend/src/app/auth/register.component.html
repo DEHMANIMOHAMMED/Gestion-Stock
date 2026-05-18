@@ -1,0 +1,52 @@
+<section class="auth-screen">
+  <div class="auth-panel">
+    <div class="auth-brand">
+      <span>GS</span>
+      <strong>Gestion Stock</strong>
+    </div>
+
+    <div class="auth-copy">
+      <p>Start now</p>
+      <h2>Create an account</h2>
+      <span>Create your organisation workspace and secure admin access.</span>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="register()">
+      <label for="organisationName">Organisation</label>
+      <input id="organisationName" type="text" formControlName="organisationName" autocomplete="organization" placeholder="Votre organisation" />
+      <div *ngIf="fieldInvalid('organisationName')" class="field-error">Nom d'organisation requis, 2 caracteres minimum.</div>
+
+      <label for="email">Email</label>
+      <input id="email" type="text" inputmode="email" formControlName="email" autocomplete="email" placeholder="admin@example.com" />
+      <div *ngIf="fieldInvalid('email')" class="field-error">Email valide requis.</div>
+
+      <label for="password">Mot de passe</label>
+      <input id="password" type="password" formControlName="password" autocomplete="new-password" placeholder="8 caracteres minimum" />
+      <div *ngIf="fieldInvalid('password')" class="field-error">Mot de passe requis, 8 caracteres minimum.</div>
+
+      <div *ngIf="message" class="error">{{ message }}</div>
+      <button type="submit" [disabled]="loading || form.invalid">{{ loading ? 'Inscription...' : "S'inscrire" }}</button>
+    </form>
+    <div class="oauth-divider"><span>ou</span></div>
+    <div id="google-register-button" class="google-button" aria-label="Inscription Google"></div>
+    <p class="auth-switch">Deja un compte ? <a routerLink="/login">Se connecter</a></p>
+  </div>
+
+  <aside class="auth-visual">
+    <div class="visual-card visual-chart">
+      <span>Inventory analytics</span>
+      <strong>42%</strong>
+      <div class="bars">
+        <i></i><i></i><i></i><i></i><i></i><i></i>
+      </div>
+    </div>
+    <div class="visual-card visual-donut">
+      <span>Demand planning</span>
+      <strong>Smart reorder</strong>
+    </div>
+    <div class="visual-text">
+      <h3>Efficiently track and manage stock</h3>
+      <p>Keep products, stock levels and movement history clear from day one.</p>
+    </div>
+  </aside>
+</section>

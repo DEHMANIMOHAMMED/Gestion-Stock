@@ -1,0 +1,40 @@
+# Secrets
+client_secret_*.json
+*.pem
+*.key
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+.dev-logs/
+stock-frontend/frontend-design.*.log
+ai-service/*.log
+
+# Local databases and generated runtime data
+stock-backend/data/
+*.mv.db
+*.trace.db
+
+# Java
+stock-backend/target/
+stock-backend/.idea/
+stock-backend/.vscode/
+
+# Angular
+stock-frontend/node_modules/
+stock-frontend/dist/
+stock-frontend/.angular/
+
+# Python
+ai-service/.venv/
+ai-service/.pytest_cache/
+__pycache__/
+*.py[cod]
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

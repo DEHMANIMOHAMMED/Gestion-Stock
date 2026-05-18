@@ -1,0 +1,88 @@
+<section class="ai-page copilot-page">
+  <header class="ai-header">
+    <div>
+      <p class="eyebrow">Copilot IA</p>
+      <h1>Assistant stock contextualise</h1>
+    </div>
+  </header>
+
+  <article class="ai-panel copilot-panel">
+    <div class="copilot-toolbar">
+      <button type="button" class="ghost-button" (click)="newConversation()">Nouvelle conversation</button>
+      <span *ngIf="conversationId()">Conversation #{{ conversationId() }}</span>
+    </div>
+    <label>
+      Question
+      <textarea [ngModel]="question()" (ngModelChange)="question.set($event)" rows="4"></textarea>
+    </label>
+    <button type="button" class="action-button" (click)="ask()" [disabled]="loading()">
+      {{ loading() ? 'Analyse...' : 'Demander au Copilot' }}
+    </button>
+  </article>
+
+  <article class="ai-panel answer-panel" *ngIf="response() as result">
+    <div class="answer-head">
+      <h2>{{ result.answer }}</h2>
+      <span>{{ result.source }}</span>
+    </div>
+    <ul>
+      <li *ngFor="let bullet of result.bullets">{{ bullet }}</li>
+    </ul>
+    <div class="citation-list" *ngIf="result.citations.length">
+      <strong>Sources internes</strong>
+      <span *ngFor="let citation of result.citations">
+        {{ citation.type }} - {{ citation.label }}
+      </span>
+    </div>
+    <div class="copilot-actions" *ngIf="result.actions.length">
+      <strong>Actions proposees</strong>
+      <button
+        type="button"
+        *ngFor="let action of result.actions"
+        (click)="executeAction(action)"
+        [disabled]="actionLoading() === actionKey(action)"
+      >
+        <span>{{ action.label }}</span>
+        <small>{{ action.description }}</small>
+      </button>
+    </div>
+  </article>
+
+  <p class="copilot-message" *ngIf="message()">{{ message() }}</p>
+
+  <article class="ai-panel result-panel" *ngIf="explanation() as explanation">
+    <div class="answer-head">
+      <h2>Explication recommandation #{{ explanation.recommendationId }}</h2>
+      <span>{{ explanation.source }}</span>
+    </div>
+    <p>{{ explanation.summary }}</p>
+    <ul>
+      <li *ngFor="let driver of explanation.drivers">{{ driver }}</li>
+    </ul>
+    <strong>{{ explanation.nextAction }}</strong>
+  </article>
+
+  <article class="ai-panel result-panel" *ngIf="whatIfResult() as result">
+    <div class="answer-head">
+      <h2>Simulation what-if</h2>
+      <span>{{ result.productName }}</span>
+    </div>
+    <p>{{ result.recommendation }}</p>
+    <div class="simulation-grid">
+      <span>Couverture actuelle: {{ result.currentCoverageDays }}j</span>
+      <span>Couverture projetee: {{ result.projectedCoverageDays }}j</span>
+      <span>Stock apres lead time: {{ result.projectedStockAfterLeadTime }}</span>
+    </div>
+  </article>
+
+  <article class="ai-panel history-panel" *ngIf="history().length">
+    <div class="answer-head">
+      <h2>Historique Copilot</h2>
+      <span>{{ history().length }}</span>
+    </div>
+    <button type="button" class="history-item" *ngFor="let conversation of history()" (click)="openConversation(conversation)">
+      <strong>{{ conversation.title }}</strong>
+      <small>{{ conversation.updatedAt | date:'short' }}</small>
+    </button>
+  </article>
+</section>

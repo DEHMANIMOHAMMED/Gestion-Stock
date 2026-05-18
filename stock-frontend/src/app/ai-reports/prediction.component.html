@@ -1,0 +1,137 @@
+<section class="ai-page">
+  <header class="ai-header">
+    <div>
+      <p class="eyebrow">Prediction AI</p>
+      <h1>Prediction des ruptures</h1>
+    </div>
+    <button type="button" class="action-button" (click)="load()">Actualiser</button>
+  </header>
+
+  <p class="error" *ngIf="error()">{{ error() }}</p>
+  <p class="success" *ngIf="success()">{{ success() }}</p>
+  <div class="loading" *ngIf="loading()">Calcul des predictions...</div>
+
+  <section class="ai-grid" *ngIf="!loading()">
+    <article class="ai-card">
+      <span>SKUs a risque</span>
+      <strong>{{ risks().length }}</strong>
+    </article>
+    <article class="ai-card">
+      <span>Risque critique</span>
+      <strong>{{ highRiskCount() }}</strong>
+    </article>
+    <article class="ai-card">
+      <span>Quantite recommandee</span>
+      <strong>{{ totalRecommendedOrder() }}</strong>
+    </article>
+  </section>
+
+  <section class="ai-panel" *ngIf="!loading()">
+    <div class="panel-title">
+      <h2>Recommandations de reapprovisionnement</h2>
+      <label class="supplier-picker" *ngIf="suppliers().length > 0">
+        Fournisseur manuel
+        <select [ngModel]="selectedSupplierId()" (ngModelChange)="selectedSupplierId.set($event)">
+          <option *ngFor="let supplier of suppliers()" [ngValue]="supplier.id">{{ supplier.name }}</option>
+        </select>
+      </label>
+    </div>
+    <div class="empty" *ngIf="suppliers().length === 0">
+      Ajoute un fournisseur pour transformer une recommandation IA en commande brouillon.
+    </div>
+    <div class="empty" *ngIf="risks().length === 0">Aucune rupture probable avec les seuils actuels.</div>
+
+    <table class="ai-table" *ngIf="risks().length > 0">
+      <thead>
+        <tr>
+          <th>Produit</th>
+          <th>SKU</th>
+          <th>Prevision 30j</th>
+          <th>Date rupture</th>
+          <th>Commander</th>
+          <th>Fournisseur IA</th>
+          <th>Risque</th>
+          <th>Explication</th>
+          <th>Commande</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let row of risks()">
+          <td>{{ row.productName }}</td>
+          <td>{{ row.sku }}</td>
+          <td>{{ forecastFor(row.productId)?.predictedQuantity ?? 0 }}</td>
+          <td>{{ row.estimatedStockoutDate || 'Non estimee' }}</td>
+          <td>{{ recommendationFor(row.productId)?.recommendedQuantity ?? 0 }}</td>
+          <td>
+            <span *ngIf="recommendationFor(row.productId)?.preferredSupplierName as supplierName; else manualSupplier">
+              {{ supplierName }}
+              <small class="supplier-hint">
+                min {{ recommendationFor(row.productId)?.preferredSupplierMinimumOrderQuantity }},
+                {{ recommendationFor(row.productId)?.preferredSupplierLeadTimeDays }}j,
+                score {{ recommendationFor(row.productId)?.preferredSupplierScore }}
+              </small>
+              <small class="supplier-hint">
+                {{ recommendationFor(row.productId)?.preferredSupplierScoreExplanation }}
+              </small>
+            </span>
+            <ng-template #manualSupplier>
+              <span class="supplier-hint">Selection manuelle</span>
+            </ng-template>
+          </td>
+          <td>
+            <span class="status-pill" [class.warning]="row.riskLevel === 'MEDIUM'" [class.danger]="row.riskLevel === 'HIGH'">
+              {{ riskLabel(row.riskLevel) }}
+            </span>
+          </td>
+          <td>
+            <button type="button" class="ghost-action" (click)="explain(row)">Expliquer</button>
+          </td>
+          <td>
+            <span class="order-link" *ngIf="recommendationFor(row.productId)?.purchaseOrderId as orderId">
+              Commande #{{ orderId }}
+            </span>
+            <button
+              *ngIf="!recommendationFor(row.productId)?.purchaseOrderId"
+              type="button"
+              class="ghost-action"
+              (click)="createDraftOrder(row)"
+              [disabled]="
+                !(recommendationFor(row.productId)?.preferredSupplierId || selectedSupplierId()) ||
+                !(recommendationFor(row.productId)?.recommendedQuantity ?? 0)
+              "
+            >
+              Brouillon IA
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="ai-panel explanation-panel" *ngIf="explanation() as item">
+    <div class="panel-title">
+      <h2>Explication recommandation #{{ item.recommendationId }}</h2>
+      <span class="status-pill">{{ item.source }}</span>
+    </div>
+    <p>{{ item.summary }}</p>
+    <div class="explanation-grid">
+      <div>
+        <h3>Facteurs</h3>
+        <ul>
+          <li *ngFor="let driver of item.drivers">{{ driver }}</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Risques</h3>
+        <ul>
+          <li *ngFor="let risk of item.risks">{{ risk }}</li>
+        </ul>
+      </div>
+    </div>
+    <strong>{{ item.nextAction }}</strong>
+    <div class="citation-list" *ngIf="item.citations.length">
+      <strong>Sources internes</strong>
+      <span *ngFor="let citation of item.citations">{{ citation.type }} · {{ citation.label }}</span>
+    </div>
+  </section>
+</section>

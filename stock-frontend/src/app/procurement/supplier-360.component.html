@@ -1,0 +1,103 @@
+<section class="supplier-page">
+  <a routerLink="/procurement" class="back-link">Retour fournisseurs</a>
+
+  <p class="error" *ngIf="error()">{{ error() }}</p>
+  <div class="loading" *ngIf="loading()">Chargement du fournisseur...</div>
+
+  <ng-container *ngIf="supplier() as supplier">
+    <header class="supplier-hero">
+      <div>
+        <p>Supplier 360</p>
+        <h1>{{ supplier.name }}</h1>
+        <span>{{ supplier.email || 'Email non renseigne' }}</span>
+        <span>{{ supplier.phone || 'Telephone non renseigne' }}</span>
+      </div>
+      <div class="health-card">
+        <small>Health score</small>
+        <strong>{{ supplier.healthScore }}</strong>
+        <span>{{ healthLabel(supplier.healthScore) }}</span>
+      </div>
+    </header>
+
+    <section class="metrics-grid">
+      <article>
+        <span>Commandes</span>
+        <strong>{{ supplier.totalOrders }}</strong>
+        <small>{{ supplier.receivedOrders }} recues, {{ supplier.orderedOrders }} en cours</small>
+      </article>
+      <article>
+        <span>Fiabilite</span>
+        <strong>{{ supplier.onTimeRate }}%</strong>
+        <small>{{ supplier.lateOrders }} retards, {{ supplier.averageDelayDays }}j moyen</small>
+      </article>
+      <article>
+        <span>Conformite</span>
+        <strong>{{ supplier.conformityRate }}%</strong>
+        <small>{{ supplier.receivedQuantity }}/{{ supplier.orderedQuantity }} unites recues</small>
+      </article>
+      <article>
+        <span>Depense</span>
+        <strong>{{ supplier.totalSpend }}</strong>
+        <small>Cout moyen {{ supplier.averageUnitCost }}</small>
+      </article>
+    </section>
+
+    <section class="content-grid">
+      <article class="panel">
+        <h2>Recommandations</h2>
+        <ul class="recommendations">
+          <li *ngFor="let recommendation of supplier.recommendations">{{ recommendation }}</li>
+        </ul>
+      </article>
+
+      <article class="panel">
+        <h2>Produits couverts</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Produit</th>
+              <th>Cout</th>
+              <th>Min.</th>
+              <th>Score</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let product of supplier.products">
+              <td>{{ product.productName }} <small>{{ product.sku }}</small></td>
+              <td>{{ product.unitCost ?? '-' }}</td>
+              <td>{{ product.minimumOrderQuantity }}</td>
+              <td>{{ product.supplierScore }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </article>
+    </section>
+
+    <section class="panel">
+      <h2>Historique commandes</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Statut</th>
+            <th>Quantites</th>
+            <th>Livraison prevue</th>
+            <th>Recue le</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let order of supplier.recentOrders">
+            <td>#{{ order.id }}</td>
+            <td><span class="status" [class.done]="order.status === 'RECEIVED'">{{ order.status }}</span></td>
+            <td>{{ order.receivedQuantity }}/{{ order.orderedQuantity }}</td>
+            <td>{{ order.expectedDeliveryDate || '-' }}</td>
+            <td>{{ order.receivedAt || '-' }}</td>
+            <td>{{ order.totalCost }}</td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="empty" *ngIf="supplier.recentOrders.length === 0">Aucune commande recente.</p>
+    </section>
+  </ng-container>
+</section>

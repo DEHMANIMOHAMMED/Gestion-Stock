@@ -1,0 +1,70 @@
+.health-layout {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr) 360px;
+}
+
+.ai-table tr {
+  cursor: pointer;
+}
+
+.ai-table tr.selected {
+  background: #f2f7f3;
+}
+
+.ai-table small {
+  color: var(--muted);
+  display: block;
+  margin-top: 4px;
+}
+
+.health-detail {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 20px;
+
+  div {
+    background: var(--surface-soft);
+    border-radius: 10px;
+    padding: 10px;
+  }
+
+  dt {
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  dd {
+    margin: 4px 0 0;
+  }
+}
+
+aside label {
+  color: var(--muted);
+  display: grid;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+aside input {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px;
+}
+
+.what-if {
+  background: #f2f7f3;
+  border-radius: 12px;
+  display: grid;
+  gap: 6px;
+  margin-top: 14px;
+  padding: 14px;
+}
+
+@media (max-width: 1080px) {
+  .health-layout {
+    grid-template-columns: 1fr;
+  }
+}

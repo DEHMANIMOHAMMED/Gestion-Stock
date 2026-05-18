@@ -1,0 +1,103 @@
+<section class="ai-page">
+  <header class="ai-header">
+    <div>
+      <p class="eyebrow">Reports</p>
+      <h1>Rapports stock</h1>
+    </div>
+    <div class="header-actions">
+      <button type="button" class="secondary-button" (click)="load()">Actualiser</button>
+      <button type="button" class="action-button" (click)="requestRun()" [disabled]="recalculating()">
+        {{ recalculating() ? 'Recalcul en cours...' : 'Recalculer IA' }}
+      </button>
+    </div>
+  </header>
+
+  <p class="error" *ngIf="error()">{{ error() }}</p>
+  <div class="loading" *ngIf="loading()">Preparation des rapports...</div>
+
+  <ng-container *ngIf="dashboard() as data">
+    <section class="ai-grid">
+      <article class="ai-card">
+        <span>Previsions</span>
+        <strong>{{ data.forecasts.length }}</strong>
+      </article>
+      <article class="ai-card">
+        <span>Recommandations</span>
+        <strong>{{ data.reorderRecommendations.length }}</strong>
+      </article>
+      <article class="ai-card">
+        <span>Anomalies</span>
+        <strong>{{ data.anomalies.length }}</strong>
+      </article>
+    </section>
+
+    <section class="ai-panel">
+      <h2>Exports disponibles</h2>
+      <div class="report-actions">
+        <button type="button" (click)="exportCsv()">Exporter historique CSV</button>
+        <button type="button" (click)="exportPdf()">Exporter historique PDF</button>
+      </div>
+    </section>
+
+    <section class="ai-panel">
+      <div class="panel-title">
+        <h2>Pipeline IA</h2>
+        <span
+          class="status-pill"
+          [class.warning]="latestRun()?.status === 'QUEUED' || latestRun()?.status === 'RUNNING'"
+          [class.danger]="latestRun()?.status === 'FAILED'"
+        >
+          {{ latestRun()?.status || 'Aucun run' }}
+        </span>
+      </div>
+      <table class="ai-table">
+        <tbody>
+          <tr>
+            <th>Dernier lancement</th>
+            <td>{{ latestRun()?.startedAt || '-' }}</td>
+          </tr>
+          <tr>
+            <th>Source modele</th>
+            <td>{{ latestRun()?.modelSource || 'LOCAL_FALLBACK' }}</td>
+          </tr>
+          <tr>
+            <th>Resultats</th>
+            <td>
+              {{ latestRun()?.forecastsCount || data.forecasts.length }} previsions,
+              {{ latestRun()?.risksCount || data.stockoutRisks.length }} risques,
+              {{ latestRun()?.recommendationsCount || data.reorderRecommendations.length }} recommandations
+            </td>
+          </tr>
+          <tr *ngIf="latestRun()?.errorMessage">
+            <th>Erreur</th>
+            <td>{{ latestRun()?.errorMessage }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="ai-panel" *ngIf="runs().length">
+      <h2>Historique des runs</h2>
+      <table class="ai-table">
+        <thead>
+          <tr>
+            <th>Statut</th>
+            <th>Declencheur</th>
+            <th>Modele</th>
+            <th>Debut</th>
+            <th>Fin</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let run of runs()">
+            <td>{{ run.status }}</td>
+            <td>{{ run.triggerType }}</td>
+            <td>{{ run.modelSource }}</td>
+            <td>{{ run.startedAt }}</td>
+            <td>{{ run.completedAt || '-' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  </ng-container>
+</section>

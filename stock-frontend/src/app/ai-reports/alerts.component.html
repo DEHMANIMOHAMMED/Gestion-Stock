@@ -1,0 +1,59 @@
+<section class="ai-page">
+  <header class="ai-header">
+    <div>
+      <p class="eyebrow">Alert center</p>
+      <h1>Alertes stock</h1>
+    </div>
+    <button type="button" class="action-button" (click)="load()">Actualiser</button>
+  </header>
+
+  <p class="error" *ngIf="error()">{{ error() }}</p>
+  <div class="loading" *ngIf="loading()">Chargement des alertes...</div>
+
+  <section class="ai-grid" *ngIf="!loading()">
+    <article class="ai-card">
+      <span>Total alertes</span>
+      <strong>{{ alerts().length }}</strong>
+    </article>
+    <article class="ai-card">
+      <span>Ruptures</span>
+      <strong>{{ criticalCount() }}</strong>
+    </article>
+    <article class="ai-card">
+      <span>Stock bas</span>
+      <strong>{{ warningCount() }}</strong>
+    </article>
+  </section>
+
+  <section class="ai-panel" *ngIf="!loading()">
+    <h2>Priorites operationnelles</h2>
+    <div class="empty" *ngIf="alerts().length === 0">Aucune alerte active.</div>
+
+    <table class="ai-table" *ngIf="alerts().length > 0">
+      <thead>
+        <tr>
+          <th>Produit</th>
+          <th>SKU</th>
+          <th>Score</th>
+          <th>Rupture estimee</th>
+          <th>Raison</th>
+          <th>Priorite</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let alert of alerts()">
+          <td>{{ alert.productName }}</td>
+          <td>{{ alert.sku }}</td>
+          <td>{{ alert.riskScore }}</td>
+          <td>{{ alert.estimatedStockoutDate || 'Non estimee' }}</td>
+          <td>{{ alert.reason }}</td>
+          <td>
+            <span class="status-pill" [class.danger]="alert.riskLevel === 'HIGH'" [class.warning]="alert.riskLevel === 'MEDIUM'">
+              {{ alert.riskLevel === 'HIGH' ? 'Critique' : alert.riskLevel === 'MEDIUM' ? 'A surveiller' : 'Stable' }}
+            </span>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+</section>
