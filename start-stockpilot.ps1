@@ -171,7 +171,9 @@ try {
                 if (-not $env:CACHE_TYPE) {
                     $env:CACHE_TYPE = "simple"
                 }
-                $env:JWT_SECRET = "dev_secret_key_just_for_local_tests_32chars_min"
+                if (-not $env:JWT_SECRET) {
+                    $env:JWT_SECRET = (([guid]::NewGuid().ToString("N")) + ([guid]::NewGuid().ToString("N")))
+                }
                 & .\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=dev"
             } -ArgumentList @($BackendPort, $AiPort, (-not $NoAi).ToString().ToLowerInvariant())
         }
