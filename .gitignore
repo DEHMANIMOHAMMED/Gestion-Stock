@@ -11,11 +11,17 @@ client_secret_*.json
 .dev-logs/
 stock-frontend/frontend-design.*.log
 ai-service/*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
 # Local databases and generated runtime data
 stock-backend/data/
 *.mv.db
 *.trace.db
+*.db
+*.sqlite
+*.sqlite3
 
 # Java
 stock-backend/target/
@@ -30,11 +36,18 @@ stock-frontend/.angular/
 # Python
 ai-service/.venv/
 ai-service/.pytest_cache/
+.pytest_cache/
 __pycache__/
 *.py[cod]
+.coverage
+htmlcov/
 
 # OS/editor
 .DS_Store
 Thumbs.db
 .idea/
 .vscode/
+
+# Local reports / scratch artifacts
+avancement/
+plan_startup_stock_ia.pdf
