@@ -22,7 +22,8 @@ export class RegisterComponent {
   form = this.fb.group({
     organisationName: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
     email: ['', [Validators.required, Validators.email, Validators.maxLength(180)]],
-    password: ['', [Validators.required, Validators.minLength(8), Validators.maxLength(100)]]
+    password: ['', [Validators.required, Validators.minLength(8), Validators.maxLength(100)]],
+    planCode: ['STARTER', [Validators.required]]
   });
 
   message = '';
@@ -50,9 +51,9 @@ export class RegisterComponent {
       return;
     }
 
-    const { organisationName, email, password } = this.form.value;
+    const { organisationName, email, password, planCode } = this.form.value;
     this.loading = true;
-    this.auth.register(organisationName!, email!, password!).subscribe({
+    this.auth.register(organisationName!, email!, password!, planCode as 'STARTER' | 'PRO').subscribe({
       next: () => {
         this.loading = false;
         this.router.navigateByUrl('/onboarding');
@@ -64,7 +65,12 @@ export class RegisterComponent {
     });
   }
 
-  fieldInvalid(field: 'organisationName' | 'email' | 'password'): boolean {
+  selectPlan(planCode: 'STARTER' | 'PRO'): void {
+    this.form.controls.planCode.setValue(planCode);
+    this.form.controls.planCode.markAsDirty();
+  }
+
+  fieldInvalid(field: 'organisationName' | 'email' | 'password' | 'planCode'): boolean {
     const control = this.form.controls[field];
     return control.invalid && (control.dirty || control.touched);
   }
@@ -76,10 +82,10 @@ export class RegisterComponent {
 
     this.message = '';
     this.googleLoading = true;
-    this.auth.loginWithGoogle(idToken).subscribe({
+    this.auth.loginWithGoogle(idToken, this.form.controls.planCode.value as 'STARTER' | 'PRO').subscribe({
       next: () => {
         this.googleLoading = false;
-        this.router.navigateByUrl(this.auth.user()?.onboardingCompleted ? '/dashboard' : '/onboarding');
+        this.router.navigateByUrl(this.auth.landingPath());
       },
       error: (err) => {
         this.googleLoading = false;

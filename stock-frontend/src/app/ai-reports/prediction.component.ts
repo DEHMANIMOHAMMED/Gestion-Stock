@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { AiForecast, AiRecommendationExplanation, AiReorderRecommendation, AiService, AiStockoutRisk } from './ai.service';
+import { AiForecast, AiForecastBacktest, AiForecastBacktestPoint, AiRecommendationExplanation, AiReorderRecommendation, AiService, AiStockoutRisk } from './ai.service';
 import { ProcurementService, Supplier } from '../procurement/procurement.service';
 
 @Component({
@@ -16,6 +16,7 @@ export class PredictionComponent implements OnInit {
   private procurementService = inject(ProcurementService);
 
   forecasts = signal<AiForecast[]>([]);
+  backtests = signal<AiForecastBacktest[]>([]);
   risks = signal<AiStockoutRisk[]>([]);
   recommendations = signal<AiReorderRecommendation[]>([]);
   suppliers = signal<Supplier[]>([]);
@@ -24,6 +25,7 @@ export class PredictionComponent implements OnInit {
   error = signal<string | null>(null);
   success = signal<string | null>(null);
   explanation = signal<AiRecommendationExplanation | null>(null);
+  selectedBacktestProductId = signal<number | null>(null);
 
   ngOnInit(): void {
     this.load();
@@ -58,6 +60,15 @@ export class PredictionComponent implements OnInit {
       },
       error: () => this.error.set('Impossible de charger les fournisseurs.')
     });
+    this.aiService.getForecastBacktests(null, 30).subscribe({
+      next: (backtests) => {
+        this.backtests.set(backtests);
+        if (!this.selectedBacktestProductId() && backtests.length) {
+          this.selectedBacktestProductId.set(backtests[0].productId);
+        }
+      },
+      error: () => this.error.set('Impossible de charger le backtesting IA.')
+    });
   }
 
   highRiskCount(): number {
@@ -66,6 +77,10 @@ export class PredictionComponent implements OnInit {
 
   totalRecommendedOrder(): number {
     return this.recommendations().reduce((sum, row) => sum + row.recommendedQuantity, 0);
+  }
+
+  lowConfidenceCount(): number {
+    return this.forecasts().filter((forecast) => forecast.confidenceLevel === 'LOW' || forecast.confidenceLevel === 'INSUFFICIENT_DATA').length;
   }
 
   riskLabel(risk: AiStockoutRisk['riskLevel']): string {
@@ -78,6 +93,41 @@ export class PredictionComponent implements OnInit {
 
   forecastFor(productId: number): AiForecast | undefined {
     return this.forecasts().find((forecast) => forecast.productId === productId);
+  }
+
+  selectedBacktest(): AiForecastBacktest | undefined {
+    return this.backtests().find((backtest) => backtest.productId === Number(this.selectedBacktestProductId()));
+  }
+
+  maxBacktestUnits(backtest: AiForecastBacktest | undefined): number {
+    const values = backtest?.points.flatMap((point) => [point.actualUnits, Number(point.predictedUnits)]) ?? [];
+    return Math.max(1, ...values);
+  }
+
+  backtestBarHeight(point: AiForecastBacktestPoint, key: 'actualUnits' | 'predictedUnits'): number {
+    const value = Number(point[key]);
+    return Math.max(4, Math.round((value / this.maxBacktestUnits(this.selectedBacktest())) * 92));
+  }
+
+  confidenceLabel(forecast: AiForecast | undefined): string {
+    if (!forecast) {
+      return 'Non calculee';
+    }
+    return {
+      HIGH: 'Fiable',
+      MEDIUM: 'Moyenne',
+      LOW: 'Faible',
+      INSUFFICIENT_DATA: 'Donnees faibles'
+    }[forecast.confidenceLevel];
+  }
+
+  qualityLabel(level: AiForecastBacktest['qualityLevel']): string {
+    return {
+      HIGH: 'Fiable',
+      MEDIUM: 'Moyen',
+      LOW: 'A recalibrer',
+      INSUFFICIENT_DATA: 'Donnees faibles'
+    }[level];
   }
 
   recommendationFor(productId: number): AiReorderRecommendation | undefined {

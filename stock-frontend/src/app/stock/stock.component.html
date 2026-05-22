@@ -1,5 +1,16 @@
 <div class="stock-page">
-  <h2>Stock</h2>
+  <app-page-header
+    eyebrow="Operations stock"
+    title="Stock"
+    description="Suivre les quantites par produit et enregistrer rapidement les entrees, sorties ou ajustements."
+  ></app-page-header>
+
+  <app-empty-state
+    *ngIf="!products().length"
+    title="Aucun produit"
+    description="Cree d'abord des produits pour commencer a suivre ton stock."
+  ></app-empty-state>
+
   <table class="stock-table" *ngIf="products().length > 0">
     <thead>
       <tr>
@@ -11,9 +22,17 @@
     <tbody>
       <tr *ngFor="let p of products()">
         <td>{{ p.name }}</td>
-        <td>{{ stockMap()[p.id] ?? 0 }}</td>
         <td>
-          <button (click)="openMovement(p.id)">Mouvement</button>
+          <span class="stock-pill" [class.empty]="(stockMap()[p.id] ?? 0) === 0" [class.low]="(stockMap()[p.id] ?? 0) <= p.minStock && (stockMap()[p.id] ?? 0) > 0">
+            {{ stockMap()[p.id] ?? 0 }} {{ p.unit }}
+          </span>
+        </td>
+        <td>
+          <div class="quick-actions">
+            <button (click)="openMovement(p.id, 'IN')">Entree</button>
+            <button (click)="openMovement(p.id, 'OUT')" class="out">Sortie</button>
+            <button (click)="openMovement(p.id, 'ADJUST')" class="adjust">Ajustement</button>
+          </div>
         </td>
       </tr>
     </tbody>
@@ -22,6 +41,7 @@
   <app-movement-form
     *ngIf="showForm && selectedProductId"
     [productId]="selectedProductId"
+    [initialType]="selectedType"
     (closed)="formClosed()"
   ></app-movement-form>
 

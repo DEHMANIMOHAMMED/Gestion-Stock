@@ -14,6 +14,8 @@ public interface ProductJpaRepository extends JpaRepository<ProductEntity, Long>
 
     List<ProductEntity> findByOrganisationId(Long orgId);
 
+    long countByOrganisationId(Long organisationId);
+
     Optional<ProductEntity> findByIdAndOrganisationId(Long id, Long organisationId);
 
     void deleteByIdAndOrganisationId(Long id, Long organisationId);

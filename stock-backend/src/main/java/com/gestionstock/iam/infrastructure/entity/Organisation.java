@@ -3,6 +3,8 @@ package com.gestionstock.iam.infrastructure.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Getter @Setter
 @NoArgsConstructor
@@ -39,6 +41,40 @@ public class Organisation {
     @Column(length = 10)
     private String currency;
 
+    @Column(name = "logo_url", length = 500)
+    private String logoUrl;
+
+    @Column(name = "tax_id", length = 80)
+    private String taxId;
+
+    @Column(length = 220)
+    private String website;
+
+    @Column(name = "stock_alert_email", length = 180)
+    private String stockAlertEmail;
+
+    @Column(name = "default_lead_time_days", nullable = false)
+    private Integer defaultLeadTimeDays;
+
     @Column(name = "onboarding_completed", nullable = false)
     private boolean onboardingCompleted;
+
+    @Column(name = "created_at", nullable = false)
+    private LocalDateTime createdAt;
+
+    @Column(nullable = false, length = 20)
+    private String status;
+
+    @PrePersist
+    void prePersist() {
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
+        }
+        if (status == null || status.isBlank()) {
+            status = "ACTIVE";
+        }
+        if (defaultLeadTimeDays == null) {
+            defaultLeadTimeDays = 7;
+        }
+    }
 }

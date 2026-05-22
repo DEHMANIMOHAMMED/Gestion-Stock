@@ -22,6 +22,8 @@ import com.gestionstock.procurement.domain.service.ProcurementImportService;
 import com.gestionstock.procurement.domain.service.SupplierService;
 import com.gestionstock.product.domain.model.Product;
 import com.gestionstock.product.domain.service.ProductService;
+import com.gestionstock.security.PlanAccessService;
+import com.gestionstock.security.PermissionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
@@ -47,9 +49,13 @@ public class PurchaseOrderController {
     private final PurchaseOrderDocumentService documentService;
     private final ProcurementApprovalSettingsService approvalSettingsService;
     private final PurchaseOrderMapper mapper;
+    private final PermissionService permissionService;
+    private final PlanAccessService planAccessService;
 
     @PostMapping
     public ResponseEntity<PurchaseOrderResponse> create(@Valid @RequestBody PurchaseOrderRequest request) {
+        planAccessService.requireProPlan();
+        permissionService.requireAdmin();
         return ResponseEntity.ok(toResponse(service.create(mapper.toDomain(request))));
     }
 
@@ -57,6 +63,8 @@ public class PurchaseOrderController {
     public ResponseEntity<PurchaseOrderResponse> createFromRecommendation(
             @Valid @RequestBody PurchaseOrderFromRecommendationRequest request
     ) {
+        planAccessService.requireProPlan();
+        permissionService.requireAdmin();
         return ResponseEntity.ok(toResponse(
                 service.createDraftFromRecommendation(request.recommendationId(), request.supplierId())
         ));
@@ -64,21 +72,28 @@ public class PurchaseOrderController {
 
     @GetMapping
     public ResponseEntity<List<PurchaseOrderResponse>> findAll() {
+        planAccessService.requireProPlan();
         return ResponseEntity.ok(service.findAll().stream().map(this::toResponse).toList());
     }
 
     @PostMapping("/import")
     public ResponseEntity<ProcurementImportResponse> importPurchaseOrders(@RequestParam("file") MultipartFile file) {
+        planAccessService.requireProPlan();
+        permissionService.requireAdmin();
         return ResponseEntity.ok(procurementImportService.importPurchaseOrders(file));
     }
 
     @GetMapping("/approval-center")
     public ResponseEntity<List<PurchaseOrderApprovalItemResponse>> approvalCenter() {
+        planAccessService.requireProPlan();
+        permissionService.requireAdmin();
         return ResponseEntity.ok(service.approvalCenter().stream().map(this::toApprovalResponse).toList());
     }
 
     @GetMapping("/approval-settings")
     public ResponseEntity<ProcurementApprovalSettingsResponse> approvalSettings() {
+        planAccessService.requireProPlan();
+        permissionService.requireAdmin();
         ProcurementApprovalSettings settings = approvalSettingsService.currentSettings();
         return ResponseEntity.ok(toSettingsResponse(settings));
     }
@@ -87,6 +102,8 @@ public class PurchaseOrderController {
     public ResponseEntity<ProcurementApprovalSettingsResponse> updateApprovalSettings(
             @Valid @RequestBody ProcurementApprovalSettingsRequest request
     ) {
+        planAccessService.requireProPlan();
+        permissionService.requireAdmin();
         return ResponseEntity.ok(toSettingsResponse(approvalSettingsService.updateThreshold(request.approvalThreshold())));
     }
 
@@ -95,21 +112,29 @@ public class PurchaseOrderController {
             @PathVariable Long id,
             @Valid @RequestBody PurchaseOrderRequest request
     ) {
+        planAccessService.requireProPlan();
+        permissionService.requireAdmin();
         return ResponseEntity.ok(toResponse(service.updateDraft(id, mapper.toDomain(request))));
     }
 
     @PostMapping("/{id}/confirm")
     public ResponseEntity<PurchaseOrderResponse> confirm(@PathVariable Long id) {
+        planAccessService.requireProPlan();
+        permissionService.requireAdmin();
         return ResponseEntity.ok(toResponse(service.confirm(id)));
     }
 
     @PostMapping("/{id}/approve")
     public ResponseEntity<PurchaseOrderResponse> approve(@PathVariable Long id) {
+        planAccessService.requireProPlan();
+        permissionService.requireAdmin();
         return ResponseEntity.ok(toResponse(service.approve(id)));
     }
 
     @PostMapping("/{id}/cancel")
     public ResponseEntity<PurchaseOrderResponse> cancel(@PathVariable Long id) {
+        planAccessService.requireProPlan();
+        permissionService.requireAdmin();
         return ResponseEntity.ok(toResponse(service.cancel(id)));
     }
 
@@ -118,6 +143,8 @@ public class PurchaseOrderController {
             @PathVariable Long id,
             @RequestBody(required = false) @Valid PurchaseOrderReceiveRequest request
     ) {
+        planAccessService.requireProPlan();
+        permissionService.requireAdmin();
         Map<Long, Integer> quantities = request == null || request.lines() == null
                 ? null
                 : request.lines().stream().collect(Collectors.toMap(
@@ -129,6 +156,8 @@ public class PurchaseOrderController {
 
     @GetMapping("/{id}/pdf")
     public ResponseEntity<byte[]> pdf(@PathVariable Long id) {
+        planAccessService.requireProPlan();
+        permissionService.requireAdmin();
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=purchase-order-" + id + ".pdf")
                 .contentType(MediaType.APPLICATION_PDF)
@@ -137,11 +166,14 @@ public class PurchaseOrderController {
 
     @GetMapping("/{id}/audit")
     public ResponseEntity<List<PurchaseOrderAuditLogResponse>> audit(@PathVariable Long id) {
+        planAccessService.requireProPlan();
         return ResponseEntity.ok(service.auditLogs(id).stream().map(this::toAuditResponse).toList());
     }
 
     @GetMapping("/accounting-export")
     public ResponseEntity<byte[]> accountingExport() {
+        planAccessService.requireProPlan();
+        permissionService.requireAdmin();
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=purchase-orders-accounting.csv")
                 .contentType(new MediaType("text", "csv"))

@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { environment } from '../environment';
+import { runtimeGoogleClientId } from '../runtime-config';
 
 interface GoogleCredentialResponse {
   credential?: string;
@@ -36,9 +37,15 @@ export class GoogleIdentityService {
         return;
       }
 
+      const clientId = runtimeGoogleClientId() || environment.googleClientId;
+      if (!clientId) {
+        target.textContent = 'Connexion Google non configuree';
+        return;
+      }
+
       target.replaceChildren();
       window.google.accounts.id.initialize({
-        client_id: environment.googleClientId,
+        client_id: clientId,
         callback: (response) => {
           if (response.credential) {
             callback(response.credential);

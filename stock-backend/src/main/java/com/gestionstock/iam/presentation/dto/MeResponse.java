@@ -6,5 +6,6 @@ public record MeResponse(
         Long organisationId,
         String organisationName,
         boolean onboardingCompleted,
-        String role
+        String role,
+        String planCode
 ) {}

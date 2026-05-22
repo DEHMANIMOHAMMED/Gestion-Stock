@@ -8,7 +8,19 @@
   </a>
 
   <ng-container *ngIf="auth.user(); else publicLinks">
-    <div class="nav-section">
+    <div class="nav-section" *ngIf="auth.hasRole('OWNER')">
+      <span class="nav-label">Owner</span>
+      <a routerLink="/owner" routerLinkActive="active">
+        <span class="nav-icon">O</span>
+        Console owner
+      </a>
+      <a routerLink="/demo-accounts" routerLinkActive="active">
+        <span class="nav-icon">D</span>
+        Demo accounts
+      </a>
+    </div>
+
+    <div class="nav-section" *ngIf="!auth.hasRole('OWNER')">
       <span class="nav-label">General</span>
       <a routerLink="/dashboard" routerLinkActive="active">
         <span class="nav-icon">D</span>
@@ -22,55 +34,75 @@
         <span class="nav-icon">S</span>
         Stock
       </a>
-      <a routerLink="/procurement" routerLinkActive="active">
+      <a routerLink="/sales" routerLinkActive="active">
+        <span class="nav-icon">€</span>
+        Ventes
+      </a>
+      <a routerLink="/procurement" routerLinkActive="active" *ngIf="auth.hasRole('ADMIN') && auth.canUseProFeatures()">
         <span class="nav-icon">F</span>
         Fournisseurs
       </a>
-      <a routerLink="/approvals" routerLinkActive="active">
+      <a routerLink="/approvals" routerLinkActive="active" *ngIf="auth.hasRole('ADMIN') && auth.canUseProFeatures()">
         <span class="nav-icon">V</span>
         Approbations
       </a>
-      <a routerLink="/notifications" routerLinkActive="active" *ngIf="auth.user()?.role === 'ADMIN'">
+      <a routerLink="/notifications" routerLinkActive="active" *ngIf="auth.hasRole('ADMIN') && auth.canUseProFeatures()">
         <span class="nav-icon">N</span>
         Notifications
       </a>
-      <a routerLink="/security-audit" routerLinkActive="active" *ngIf="auth.user()?.role === 'ADMIN'">
+      <a routerLink="/security-audit" routerLinkActive="active" *ngIf="auth.hasRole('ADMIN') && auth.canUseProFeatures()">
         <span class="nav-icon">L</span>
         Audit
       </a>
-      <a routerLink="/system-health" routerLinkActive="active" *ngIf="auth.user()?.role === 'ADMIN'">
+      <a routerLink="/system-health" routerLinkActive="active" *ngIf="auth.hasRole('ADMIN') && auth.canUseProFeatures()">
         <span class="nav-icon">H</span>
         System health
       </a>
-      <a routerLink="/executive-timeline" routerLinkActive="active" *ngIf="auth.user()?.role === 'ADMIN'">
+      <a routerLink="/model-registry" routerLinkActive="active" *ngIf="auth.hasRole('ADMIN') && auth.canUseProFeatures()">
+        <span class="nav-icon">M</span>
+        Model registry
+      </a>
+      <a routerLink="/executive-timeline" routerLinkActive="active" *ngIf="auth.hasRole('ADMIN') && auth.canUseProFeatures()">
         <span class="nav-icon">T</span>
         Today
       </a>
-      <a routerLink="/daily-report" routerLinkActive="active" *ngIf="auth.user()?.role === 'ADMIN'">
+      <a routerLink="/daily-report" routerLinkActive="active" *ngIf="auth.hasRole('ADMIN') && auth.canUseProFeatures()">
         <span class="nav-icon">R</span>
         Daily report
       </a>
-      <a routerLink="/demo-accounts" routerLinkActive="active" *ngIf="auth.user()?.role === 'ADMIN'">
-        <span class="nav-icon">D</span>
-        Demo accounts
+      <a routerLink="/users" routerLinkActive="active" *ngIf="auth.hasRole('ADMIN')">
+        <span class="nav-icon">U</span>
+        Utilisateurs
+      </a>
+      <a routerLink="/organisation-settings" routerLinkActive="active" *ngIf="auth.hasRole('ADMIN')">
+        <span class="nav-icon">O</span>
+        Organisation
+      </a>
+      <a routerLink="/billing" routerLinkActive="active" *ngIf="auth.hasRole('ADMIN')">
+        <span class="nav-icon">€</span>
+        Abonnement
+      </a>
+      <a routerLink="/support" routerLinkActive="active">
+        <span class="nav-icon">?</span>
+        Support
       </a>
     </div>
 
-    <div class="nav-section">
+    <div class="nav-section" *ngIf="!auth.hasRole('OWNER')">
       <span class="nav-label">AI & Reports</span>
-      <a routerLink="/ai-dashboard" routerLinkActive="active">
+      <a routerLink="/ai-dashboard" routerLinkActive="active" *ngIf="auth.canUseProFeatures()">
         <span class="nav-icon">AI</span>
         Cockpit IA
       </a>
-      <a routerLink="/prediction" routerLinkActive="active">
+      <a routerLink="/prediction" routerLinkActive="active" *ngIf="auth.canUseProFeatures()">
         <span class="nav-icon">P</span>
         Prediction
       </a>
-      <a routerLink="/stock-health" routerLinkActive="active">
+      <a routerLink="/stock-health" routerLinkActive="active" *ngIf="auth.canUseProFeatures()">
         <span class="nav-icon">H</span>
         Health score
       </a>
-      <a routerLink="/copilot" routerLinkActive="active">
+      <a routerLink="/copilot" routerLinkActive="active" *ngIf="auth.canUseProFeatures()">
         <span class="nav-icon">C</span>
         Copilot
       </a>
@@ -85,7 +117,7 @@
     </div>
 
     <div class="nav-footer">
-      <section class="notification-box" *ngIf="auth.user()?.role === 'ADMIN'">
+      <section class="notification-box" *ngIf="auth.hasRole('ADMIN') && auth.canUseProFeatures()">
         <div class="notification-head">
           <strong>Notifications</strong>
           <a routerLink="/notifications" [class.critical]="notifications.hasCritical()">{{ notifications.unreadCount() }}</a>
@@ -110,7 +142,7 @@
       <div class="user-chip">
         <span>{{ auth.user()?.email?.charAt(0)?.toUpperCase() }}</span>
         <div>
-          <strong>{{ auth.user()?.role }}</strong>
+          <app-role-badge *ngIf="auth.user() as user" [role]="user.role"></app-role-badge>
           <small>{{ auth.user()?.email }}</small>
         </div>
       </div>

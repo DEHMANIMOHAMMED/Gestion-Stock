@@ -1,0 +1,72 @@
+<main class="billing-page">
+  <header>
+    <div>
+      <p>Administration</p>
+      <h1>Abonnement</h1>
+    </div>
+    <button type="button" (click)="load()" [disabled]="loading()">Rafraichir</button>
+  </header>
+
+  <section class="notice" *ngIf="message()">{{ message() }}</section>
+  <section class="notice error" *ngIf="error()">{{ error() }}</section>
+
+  <section class="current-card" *ngIf="subscription() as current; else loadingState">
+    <div>
+      <span>Plan actuel</span>
+      <strong>{{ current.planCode }}</strong>
+      <small [class.warn]="!current.stripeConfigured">
+        {{ current.stripeConfigured ? 'Paiement Stripe configure' : 'Stripe non configure en environnement actuel' }}
+      </small>
+    </div>
+    <div>
+      <span>Statut</span>
+      <strong>{{ statusLabel(current.status) }}</strong>
+      <small *ngIf="current.trialEndsAt">Essai jusqu'au {{ current.trialEndsAt | date: 'dd/MM/yyyy' }}</small>
+      <small *ngIf="current.currentPeriodEnd">Renouvellement le {{ current.currentPeriodEnd | date: 'dd/MM/yyyy' }}</small>
+      <small class="warn" *ngIf="current.cancelAtPeriodEnd">Resiliation programmee a la fin de la periode.</small>
+      <button
+        class="danger"
+        type="button"
+        *ngIf="current.planCode !== 'TRIAL' && !current.cancelAtPeriodEnd"
+        (click)="cancelSubscription()"
+        [disabled]="!!actionLoading()"
+      >
+        {{ actionLoading() === 'CANCEL' ? 'Resiliation...' : 'Resilier a la fin de la periode' }}
+      </button>
+    </div>
+  </section>
+
+  <ng-template #loadingState>
+    <section class="current-card muted">Chargement de l'abonnement...</section>
+  </ng-template>
+
+  <section class="plans">
+    <article>
+      <span>Starter</span>
+      <h2>Pour demarrer proprement</h2>
+      <p>Produits, stock, alertes, fournisseurs essentiels et dashboard.</p>
+      <button type="button" (click)="startCheckout('STARTER')" [disabled]="!!actionLoading()">
+        {{ actionLoading() === 'STARTER' ? 'Preparation...' : 'Choisir Starter' }}
+      </button>
+    </article>
+
+    <article class="featured">
+      <span>Pro</span>
+      <h2>Pour piloter avec IA</h2>
+      <p>Recommandations, commandes fournisseurs, audit, notifications et pilotage avance.</p>
+      <button type="button" (click)="startCheckout('PRO')" [disabled]="!!actionLoading()">
+        {{ actionLoading() === 'PRO' ? 'Preparation...' : 'Choisir Pro' }}
+      </button>
+    </article>
+  </section>
+
+  <section class="checklist">
+    <h2>Avant la production</h2>
+    <ul>
+      <li>Configurer les cles Stripe dans les variables d'environnement.</li>
+      <li>Declarer le webhook Stripe vers le backend.</li>
+      <li>Verifier les URLs de succes et d'annulation du paiement.</li>
+      <li>Tester un abonnement complet avec les cartes de test Stripe.</li>
+    </ul>
+  </section>
+</main>

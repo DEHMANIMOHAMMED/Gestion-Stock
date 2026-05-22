@@ -11,7 +11,17 @@ public record AiForecastResponse(
         Integer horizonDays,
         BigDecimal predictedQuantity,
         BigDecimal confidenceScore,
+        String confidenceLevel,
+        BigDecimal backtestErrorPercent,
+        BigDecimal demandTrendPercent,
+        Integer salesVolume30Days,
+        String demandSignal,
         String modelName,
+        String selectedModel,
+        String modelSelectionReason,
+        BigDecimal movingAverageError,
+        BigDecimal seasonalError,
+        BigDecimal fastapiError,
         LocalDateTime generatedAt
 ) {
 }

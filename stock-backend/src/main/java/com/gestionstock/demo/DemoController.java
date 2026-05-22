@@ -1,5 +1,7 @@
 package com.gestionstock.demo;
 
+import com.gestionstock.security.PermissionService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -9,10 +11,14 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/demo")
+@RequiredArgsConstructor
 public class DemoController {
+
+    private final PermissionService permissionService;
 
     @GetMapping("/accounts")
     public ResponseEntity<List<DemoAccountResponse>> accounts() {
+        permissionService.requireOwner();
         return ResponseEntity.ok(List.of(
                 new DemoAccountResponse("Demo Stock", "Generaliste TPE avec risques mixtes", "admin@demo-stock.local", "user@demo-stock.local", "Password123!"),
                 new DemoAccountResponse("Garage Atlas", "Garage avec pieces critiques et delais fournisseurs", "admin@garage-atlas.local", "mecano@garage-atlas.local", "Password123!"),

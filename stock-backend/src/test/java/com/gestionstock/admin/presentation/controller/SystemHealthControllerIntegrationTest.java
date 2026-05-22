@@ -1,5 +1,7 @@
 package com.gestionstock.admin.presentation.controller;
 
+import com.gestionstock.billing.infrastructure.entity.BillingSubscriptionEntity;
+import com.gestionstock.billing.infrastructure.repository.BillingSubscriptionRepository;
 import com.gestionstock.iam.infrastructure.entity.Organisation;
 import com.gestionstock.iam.infrastructure.entity.Role;
 import com.gestionstock.iam.infrastructure.entity.User;
@@ -41,12 +43,16 @@ class SystemHealthControllerIntegrationTest {
     private StockJpaRepository stockRepository;
 
     @Autowired
+    private BillingSubscriptionRepository billingSubscriptionRepository;
+
+    @Autowired
     private JwtService jwtService;
 
     @BeforeEach
     void setUp() {
         stockRepository.deleteAll();
         productRepository.deleteAll();
+        billingSubscriptionRepository.deleteAll();
         userRepository.deleteAll();
         organisationRepository.deleteAll();
     }
@@ -54,6 +60,7 @@ class SystemHealthControllerIntegrationTest {
     @Test
     void adminCanReadTenantSystemHealth() throws Exception {
         Organisation organisation = organisationRepository.save(Organisation.builder().name("Ops Org").build());
+        saveSubscription(organisation, "PRO");
         User admin = userRepository.save(User.builder()
                 .email("admin@ops-org.test")
                 .password("not-used")
@@ -87,6 +94,7 @@ class SystemHealthControllerIntegrationTest {
     @Test
     void userCannotReadSystemHealth() throws Exception {
         Organisation organisation = organisationRepository.save(Organisation.builder().name("Ops User Org").build());
+        saveSubscription(organisation, "PRO");
         User user = userRepository.save(User.builder()
                 .email("user@ops-org.test")
                 .password("not-used")
@@ -97,5 +105,30 @@ class SystemHealthControllerIntegrationTest {
         mockMvc.perform(get("/admin/system-health")
                         .header("Authorization", "Bearer " + jwtService.generateToken(user)))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void starterAdminCannotReadProSystemHealth() throws Exception {
+        Organisation organisation = organisationRepository.save(Organisation.builder().name("Ops Starter Org").build());
+        saveSubscription(organisation, "STARTER");
+        User admin = userRepository.save(User.builder()
+                .email("admin@starter-ops.test")
+                .password("not-used")
+                .organisation(organisation)
+                .role(Role.ADMIN)
+                .build());
+
+        mockMvc.perform(get("/admin/system-health")
+                        .header("Authorization", "Bearer " + jwtService.generateToken(admin)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.detail").value("PRO plan required for this action"));
+    }
+
+    private void saveSubscription(Organisation organisation, String planCode) {
+        BillingSubscriptionEntity subscription = new BillingSubscriptionEntity();
+        subscription.setOrganisation(organisation);
+        subscription.setPlanCode(planCode);
+        subscription.setStatus("ACTIVE");
+        billingSubscriptionRepository.save(subscription);
     }
 }

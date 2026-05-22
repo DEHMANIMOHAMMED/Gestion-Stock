@@ -3,22 +3,30 @@ import { CommonModule } from '@angular/common';
 import { ProductService, Product } from './product.service';
 import { signal } from '@angular/core';
 import { ProductFormComponent } from './product-form.component';
+import { AuthService } from '../auth/auth.service';
+import { PageHeaderComponent } from '../shared/ui/page-header.component';
+import { EmptyStateComponent } from '../shared/ui/empty-state.component';
+import { LoadingStateComponent } from '../shared/ui/loading-state.component';
+import { ConfirmDialogComponent } from '../shared/ui/confirm-dialog.component';
 
 // Listing page for products with CRUD operations.
 @Component({
   selector: 'app-products',
   standalone: true,
-  imports: [CommonModule, ProductFormComponent],
+  imports: [CommonModule, ProductFormComponent, PageHeaderComponent, EmptyStateComponent, LoadingStateComponent, ConfirmDialogComponent],
   templateUrl: './products.component.html',
   styleUrls: ['./products.component.scss']
 })
 export class ProductsComponent implements OnInit {
   private productService = inject(ProductService);
+  auth = inject(AuthService);
   products = signal<Product[]>([]);
+  loading = signal(false);
   importMessage = signal<string | null>(null);
   importErrors = signal<string[]>([]);
   importPreview = signal<{ columns: string[]; sampleRows: string[][]; mapping: Array<{ target: string; source: string | null }> } | null>(null);
   selected: Product | null = null;
+  productToDelete = signal<Product | null>(null);
 
   ngOnInit() {
     this.load();
@@ -28,8 +36,12 @@ export class ProductsComponent implements OnInit {
    * Retrieves the products from the backend.
    */
   load() {
+    this.loading.set(true);
     this.productService.getAll().subscribe((data) => {
       this.products.set(data);
+      this.loading.set(false);
+    }, () => {
+      this.loading.set(false);
     });
   }
 
@@ -37,6 +49,9 @@ export class ProductsComponent implements OnInit {
    * Opens the product form for creating a new product.
    */
   add() {
+    if (!this.auth.hasRole('ADMIN')) {
+      return;
+    }
     this.selected = {
       id: 0,
       organisationId: 0,
@@ -52,6 +67,9 @@ export class ProductsComponent implements OnInit {
    * Opens the product form for editing an existing product.
    */
   edit(product: Product) {
+    if (!this.auth.hasRole('ADMIN')) {
+      return;
+    }
     // Clone the product so edits don't immediately affect the list
     this.selected = { ...product };
   }
@@ -68,11 +86,21 @@ export class ProductsComponent implements OnInit {
    * Deletes a product after confirmation.
    */
   delete(product: Product) {
-    if (confirm('Supprimer ce produit ?')) {
-      this.productService.delete(product.id).subscribe(() => {
-        this.load();
-      });
+    if (!this.auth.hasRole('ADMIN')) {
+      return;
     }
+    this.productToDelete.set(product);
+  }
+
+  confirmDelete(): void {
+    const product = this.productToDelete();
+    if (!product) {
+      return;
+    }
+    this.productService.delete(product.id).subscribe(() => {
+      this.productToDelete.set(null);
+      this.load();
+    });
   }
 
   /**
@@ -83,6 +111,9 @@ export class ProductsComponent implements OnInit {
   }
 
   importProducts(event: Event) {
+    if (!this.auth.hasRole('ADMIN')) {
+      return;
+    }
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
     if (!file) {

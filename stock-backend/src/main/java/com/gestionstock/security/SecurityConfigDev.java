@@ -36,7 +36,16 @@ public class SecurityConfigDev {
                         exception.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
                 )
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/h2-console/**", "/auth/**", "/demo/accounts").permitAll()
+                        .requestMatchers(
+                                "/h2-console/**",
+                                "/auth/**",
+                                "/actuator/health",
+                                "/actuator/health/**",
+                                "/billing/stripe/webhook"
+                        ).permitAll()
+                        .requestMatchers("/demo/accounts").hasRole("OWNER")
+                        .requestMatchers("/owner/**").hasRole("OWNER")
+                        .requestMatchers("/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);

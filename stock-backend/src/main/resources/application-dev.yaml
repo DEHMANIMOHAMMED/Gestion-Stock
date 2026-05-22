@@ -24,3 +24,9 @@ server:
 
 jwt:
   secret: ${JWT_SECRET:change_me_with_a_32_chars_min_local_secret}
+
+stockpilot:
+  owner:
+    enabled: ${APP_OWNER_ENABLED:true}
+    email: ${APP_OWNER_EMAIL:owner@stockpilot.local}
+    password: ${APP_OWNER_PASSWORD:Owner@2026!}

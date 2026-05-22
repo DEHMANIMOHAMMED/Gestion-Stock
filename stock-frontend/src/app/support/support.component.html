@@ -1,0 +1,90 @@
+<main class="support-page">
+  <app-page-header
+    eyebrow="Support"
+    title="Contacter StockPilot"
+    description="Envoie un message au support. Le proprietaire SaaS le recevra dans sa console Owner."
+  >
+    <button type="button" class="secondary" (click)="load()" [disabled]="loading()">Actualiser</button>
+  </app-page-header>
+
+  <p class="message" *ngIf="feedback()">{{ feedback() }}</p>
+
+  <section class="panel">
+    <div>
+      <span class="eyebrow">Contact</span>
+      <h2>Envoyer un message</h2>
+      <p>Pour une urgence, precise le produit, la commande ou le compte concerne.</p>
+    </div>
+
+    <form (ngSubmit)="send()">
+      <label>
+        Sujet
+        <input name="subject" [(ngModel)]="form.subject" maxlength="160" required placeholder="Ex: probleme abonnement, import CSV, acces utilisateur" />
+      </label>
+      <label>
+        Message
+        <textarea name="message" [(ngModel)]="form.message" rows="7" maxlength="4000" required placeholder="Decris le probleme ou la demande..."></textarea>
+      </label>
+      <label>
+        Capture d'ecran ou photo du probleme
+        <input type="file" accept="image/*" (change)="onAttachmentSelected($event, form)" />
+        <small *ngIf="form.attachmentName">{{ form.attachmentName }}</small>
+      </label>
+      <button type="submit" [disabled]="sending() || !form.subject || !form.message">
+        {{ sending() ? 'Envoi...' : 'Envoyer au support' }}
+      </button>
+    </form>
+  </section>
+
+  <app-loading-state *ngIf="loading()" message="Chargement de l'historique support..."></app-loading-state>
+
+  <section class="panel" *ngIf="!loading()">
+    <div class="panel-heading">
+      <div>
+        <span class="eyebrow">Historique</span>
+        <h2>Messages envoyes</h2>
+      </div>
+      <span>{{ messages().length }} message(s)</span>
+    </div>
+
+    <app-empty-state
+      *ngIf="!messages().length"
+      title="Aucun message support"
+      description="Tes demandes apparaitront ici apres envoi."
+    ></app-empty-state>
+
+    <article class="support-item" *ngFor="let item of messages()">
+      <div>
+        <strong>{{ item.subject }}</strong>
+        <small>{{ item.createdAt | date:'short' }} - {{ item.status }}</small>
+      </div>
+      <p>{{ item.message }}</p>
+      <a *ngIf="imageSrc(item) as src" [href]="src" target="_blank" rel="noreferrer">
+        <img [src]="src" [alt]="item.attachmentName || 'Capture support'" />
+      </a>
+
+      <div class="thread" *ngIf="item.replies.length">
+        <div class="reply" *ngFor="let reply of item.replies" [class.owner]="reply.authorRole === 'OWNER'">
+          <strong>{{ reply.authorRole === 'OWNER' ? 'Support StockPilot' : reply.authorEmail }}</strong>
+          <small>{{ reply.createdAt | date:'short' }}</small>
+          <p>{{ reply.message }}</p>
+          <a *ngIf="imageSrc(reply) as replySrc" [href]="replySrc" target="_blank" rel="noreferrer">
+            <img [src]="replySrc" [alt]="reply.attachmentName || 'Capture reponse'" />
+          </a>
+        </div>
+      </div>
+
+      <form class="reply-form" (ngSubmit)="sendReply(item.id)">
+        <textarea
+          name="reply-{{ item.id }}"
+          [(ngModel)]="replyForm(item.id).message"
+          rows="3"
+          maxlength="4000"
+          placeholder="Repondre au support..."
+        ></textarea>
+        <input type="file" accept="image/*" (change)="onAttachmentSelected($event, replyForm(item.id))" />
+        <button type="submit" [disabled]="!replyForm(item.id).message">Envoyer la reponse</button>
+      </form>
+    </article>
+  </section>
+</main>

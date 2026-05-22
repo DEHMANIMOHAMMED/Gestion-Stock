@@ -1,36 +1,49 @@
 <section class="dashboard-page">
-  <header class="page-header">
-    <div>
-      <p class="eyebrow">Pilotage stock</p>
-      <h1>Tableau de bord</h1>
-    </div>
+  <app-page-header
+    eyebrow="Pilotage stock"
+    title="Tableau de bord"
+    description="Vue dirigeant: priorites stock, commandes, fournisseurs a risque et actions IA recommandees."
+  >
     <button type="button" class="refresh-button" (click)="load()">Actualiser</button>
-  </header>
+  </app-page-header>
 
   <p class="error" *ngIf="error()">{{ error() }}</p>
-  <div class="loading" *ngIf="loading()">Chargement...</div>
+  <app-loading-state *ngIf="loading()" message="Chargement du dashboard..."></app-loading-state>
 
   <ng-container *ngIf="summary() as data">
     <section class="metrics-grid">
-      <article class="metric">
-        <span>Produits</span>
-        <strong>{{ data.totalProducts }}</strong>
-      </article>
-      <article class="metric">
-        <span>Unites en stock</span>
-        <strong>{{ data.totalUnits }}</strong>
-      </article>
-      <article class="metric warning">
-        <span>Stock bas</span>
-        <strong>{{ data.lowStockProducts }}</strong>
-      </article>
-      <article class="metric danger">
-        <span>Ruptures</span>
-        <strong>{{ data.outOfStockProducts }}</strong>
-      </article>
+      <app-stat-card label="Produits" [value]="data.totalProducts" hint="Catalogue actif"></app-stat-card>
+      <app-stat-card label="Unites en stock" [value]="data.totalUnits" hint="Quantite totale"></app-stat-card>
+      <app-stat-card label="Stock bas" [value]="data.lowStockProducts" hint="Sous seuil" tone="warning"></app-stat-card>
+      <app-stat-card label="Ruptures" [value]="data.outOfStockProducts" hint="Stock nul" tone="danger"></app-stat-card>
     </section>
 
     <section class="ai-business-grid" *ngIf="aiDashboard() as ai">
+      <article class="panel command-panel">
+        <div class="panel-header">
+          <h2>Quoi faire aujourd'hui</h2>
+          <span [class]="businessHealth().tone">{{ businessHealth().label }}</span>
+        </div>
+        <div class="command-grid">
+          <a routerLink="/stock-health">
+            <strong>{{ ai.stockHealthAverage }}</strong>
+            <span>Score sante stock</span>
+          </a>
+          <a routerLink="/prediction">
+            <strong>{{ ai.pendingRecommendationsCount }}</strong>
+            <span>Reco IA a traiter</span>
+          </a>
+          <a routerLink="/approvals">
+            <strong>{{ ai.pendingPurchaseOrdersCount }}</strong>
+            <span>Commandes en attente</span>
+          </a>
+          <a routerLink="/procurement">
+            <strong>{{ ai.supplierIssuesCount }}</strong>
+            <span>Fournisseurs a risque</span>
+          </a>
+        </div>
+      </article>
+
       <article class="panel executive-panel">
         <div class="panel-header">
           <h2>Vue dirigeant</h2>
@@ -45,6 +58,10 @@
         <ng-template #noAiAction>
           <p class="empty">Aucune action IA prioritaire aujourd'hui.</p>
         </ng-template>
+        <div class="panel-actions">
+          <a routerLink="/daily-report">Rapport du jour</a>
+          <a routerLink="/copilot">Demander au Copilot</a>
+        </div>
       </article>
 
       <article class="panel">
@@ -62,6 +79,7 @@
             {{ product.sku }}
           </div>
         </div>
+        <a class="panel-link" routerLink="/stock-health">Ouvrir le health score</a>
       </article>
 
       <article class="panel">
@@ -78,6 +96,7 @@
             <small>{{ product.stockCoverageDays }}j couverture · risque {{ product.riskScore }}</small>
           </div>
         </div>
+        <a class="panel-link" routerLink="/prediction">Voir predictions et recommandations</a>
       </article>
     </section>
 

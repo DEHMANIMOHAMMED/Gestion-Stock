@@ -1,0 +1,208 @@
+<main class="owner-page">
+  <app-page-header
+    eyebrow="Owner console"
+    title="Supervision StockPilot AI"
+    description="Vue privee SaaS pour suivre les organisations clientes, la traction produit et les parametres legaux."
+  >
+    <button type="button" (click)="load()" [disabled]="loading">Rafraichir</button>
+  </app-page-header>
+
+  <p class="message" *ngIf="message">{{ message }}</p>
+
+  <section class="metric-grid" *ngIf="dashboard() as data; else loadingState">
+    <app-stat-card label="Organisations" [value]="data.organizationsCount" [hint]="data.activeOrganizationsCount + ' actives'" tone="success"></app-stat-card>
+    <app-stat-card label="Utilisateurs" [value]="data.usersCount" hint="Tous roles confondus"></app-stat-card>
+    <app-stat-card label="Produits suivis" [value]="data.productsCount" hint="Multi-tenant"></app-stat-card>
+    <app-stat-card label="Mouvements" [value]="data.stockMovementsCount" hint="Historique stock"></app-stat-card>
+  </section>
+
+  <ng-template #loadingState>
+    <app-loading-state message="Chargement de la console owner..."></app-loading-state>
+  </ng-template>
+
+  <section class="panel" *ngIf="dashboard() as data">
+    <div class="panel-heading">
+      <div>
+        <span class="eyebrow">Clients</span>
+        <h2>Organisations clientes</h2>
+      </div>
+      <span>{{ data.trialOrganizationsCount }} trial</span>
+    </div>
+
+    <app-empty-state
+      *ngIf="!data.organizations.length"
+      title="Aucune organisation cliente"
+      description="Les organisations creees en demo ou par inscription apparaitront ici."
+    ></app-empty-state>
+
+    <div class="table-wrap" *ngIf="data.organizations.length">
+      <table>
+        <thead>
+          <tr>
+            <th>Organisation</th>
+            <th>Secteur</th>
+            <th>Plan</th>
+            <th>Statut</th>
+            <th>Utilisateurs</th>
+            <th>Produits</th>
+            <th>Mouvements</th>
+            <th>Creation</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let org of data.organizations">
+            <td>
+              <strong>{{ org.name }}</strong>
+              <small>{{ org.city || 'Ville non renseignee' }}{{ org.country ? ', ' + org.country : '' }}</small>
+            </td>
+            <td>{{ org.industry || '-' }}</td>
+            <td>
+              <span class="plan" [class.pro]="org.planCode === 'PRO'" [class.starter]="org.planCode === 'STARTER'">
+                {{ org.planCode }}
+              </span>
+              <small>{{ org.subscriptionStatus }}</small>
+            </td>
+            <td><span class="status" [class.trial]="org.status === 'TRIAL'" [class.suspended]="org.status === 'SUSPENDED'">{{ org.status }}</span></td>
+            <td>{{ org.usersCount }}</td>
+            <td>{{ org.productsCount }}</td>
+            <td>{{ org.stockMovementsCount }}</td>
+            <td>{{ org.createdAt | date: 'dd/MM/yyyy' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-heading">
+      <div>
+        <span class="eyebrow">Support</span>
+        <h2>Messages clients</h2>
+      </div>
+      <button type="button" class="secondary" (click)="loadSupportMessages()">Actualiser support</button>
+    </div>
+
+    <app-empty-state
+      *ngIf="!supportMessages().length"
+      title="Aucun message support"
+      description="Les messages envoyes par les admins ou users apparaitront ici."
+    ></app-empty-state>
+
+    <article class="support-ticket" *ngFor="let item of supportMessages()" [class.open]="item.status === 'OPEN'">
+      <div class="ticket-head">
+        <div>
+          <strong>{{ item.subject }}</strong>
+          <small>{{ item.organisationName }} - {{ item.senderEmail }} - {{ item.createdAt | date:'short' }}</small>
+        </div>
+        <span class="status" [class.trial]="item.status === 'READ'" [class.suspended]="item.status === 'RESOLVED'">{{ item.status }}</span>
+      </div>
+      <p>{{ item.message }}</p>
+      <a *ngIf="imageSrc(item) as src" [href]="src" target="_blank" rel="noreferrer">
+        <img class="support-image" [src]="src" [alt]="item.attachmentName || 'Capture support'" />
+      </a>
+
+      <div class="thread" *ngIf="item.replies.length">
+        <div class="reply" *ngFor="let reply of item.replies" [class.owner]="reply.authorRole === 'OWNER'">
+          <strong>{{ reply.authorRole === 'OWNER' ? 'Support StockPilot' : reply.authorEmail }}</strong>
+          <small>{{ reply.createdAt | date:'short' }}</small>
+          <p>{{ reply.message }}</p>
+          <a *ngIf="imageSrc(reply) as replySrc" [href]="replySrc" target="_blank" rel="noreferrer">
+            <img class="support-image small" [src]="replySrc" [alt]="reply.attachmentName || 'Capture reponse'" />
+          </a>
+        </div>
+      </div>
+
+      <form class="reply-form" (ngSubmit)="replySupport(item.id)">
+        <textarea
+          name="owner-reply-{{ item.id }}"
+          [(ngModel)]="replyForm(item.id).message"
+          rows="3"
+          maxlength="4000"
+          placeholder="Repondre a cette organisation..."
+        ></textarea>
+        <div class="inline-actions">
+          <input type="file" accept="image/*" (change)="onAttachmentSelected($event, replyForm(item.id))" />
+          <button type="submit" [disabled]="!replyForm(item.id).message">Envoyer</button>
+        </div>
+      </form>
+
+      <div class="support-admin-actions">
+        <button type="button" class="secondary" (click)="loadOrganisationUsers(item.organisationId)">Voir comptes</button>
+        <button type="button" class="danger" (click)="cancelSubscription(item.organisationId)">Annuler abonnement</button>
+      </div>
+
+      <div class="account-list" *ngIf="usersFor(item.organisationId).length">
+        <div class="account-row" *ngFor="let user of usersFor(item.organisationId)">
+          <div>
+            <strong>{{ user.email }}</strong>
+            <small>{{ user.role }} - {{ user.enabled ? 'Actif' : 'Desactive' }}</small>
+          </div>
+          <input
+            type="password"
+            [(ngModel)]="passwordForms[user.id]"
+            [ngModelOptions]="{ standalone: true }"
+            placeholder="Nouveau mot de passe"
+          />
+          <button type="button" class="secondary" (click)="changePassword(user)">Changer MDP</button>
+          <button type="button" [class.danger]="user.enabled" (click)="toggleUser(user)">
+            {{ user.enabled ? 'Desactiver' : 'Reactiver' }}
+          </button>
+        </div>
+      </div>
+
+      <div class="ticket-actions">
+        <button type="button" class="secondary" *ngIf="item.status === 'OPEN'" (click)="markSupportRead(item.id)">Marquer lu</button>
+        <button type="button" *ngIf="item.status !== 'RESOLVED'" (click)="resolveSupport(item.id)">Marquer resolu</button>
+      </div>
+    </article>
+  </section>
+
+  <section class="panel legal" *ngIf="legalForm() as form">
+    <div class="panel-heading">
+      <div>
+        <span class="eyebrow">Conformite</span>
+        <h2>Administration legale</h2>
+      </div>
+      <span *ngIf="form.updatedByEmail">Derniere mise a jour par {{ form.updatedByEmail }}</span>
+    </div>
+
+    <label>
+      Entreprise SaaS
+      <input [ngModel]="form.companyName" (ngModelChange)="updateLegalField('companyName', $event)" />
+    </label>
+
+    <div class="legal-grid">
+      <label>
+        Mentions legales
+        <textarea rows="7" [ngModel]="form.legalNotice || ''" (ngModelChange)="updateLegalField('legalNotice', $event)"></textarea>
+      </label>
+      <label>
+        Politique de confidentialite
+        <textarea rows="7" [ngModel]="form.privacyPolicy || ''" (ngModelChange)="updateLegalField('privacyPolicy', $event)"></textarea>
+      </label>
+      <label>
+        Conditions generales
+        <textarea rows="7" [ngModel]="form.terms || ''" (ngModelChange)="updateLegalField('terms', $event)"></textarea>
+      </label>
+    </div>
+
+    <div class="legal-grid links">
+      <label>
+        Lien mentions legales
+        <input [ngModel]="form.legalDocumentUrl || ''" (ngModelChange)="updateLegalField('legalDocumentUrl', $event)" />
+      </label>
+      <label>
+        Lien confidentialite
+        <input [ngModel]="form.privacyDocumentUrl || ''" (ngModelChange)="updateLegalField('privacyDocumentUrl', $event)" />
+      </label>
+      <label>
+        Lien CGU/CGV
+        <input [ngModel]="form.termsDocumentUrl || ''" (ngModelChange)="updateLegalField('termsDocumentUrl', $event)" />
+      </label>
+    </div>
+
+    <button type="button" (click)="saveLegalSettings()" [disabled]="saving || !form.companyName">
+      {{ saving ? 'Enregistrement...' : 'Enregistrer' }}
+    </button>
+  </section>
+</main>

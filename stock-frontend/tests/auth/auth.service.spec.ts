@@ -20,7 +20,8 @@ describe('AuthService', () => {
     organisationId: 3,
     organisationName: 'Demo Org',
     onboardingCompleted: true,
-    role: 'ADMIN'
+    role: 'ADMIN',
+    planCode: 'PRO'
   };
 
   beforeEach(() => {
@@ -65,14 +66,15 @@ describe('AuthService', () => {
   });
 
   it('stores the token and loads /auth/me after registration', () => {
-    service.register('Demo Org', 'admin@example.com', 'Password123!').subscribe();
+    service.register('Demo Org', 'admin@example.com', 'Password123!', 'STARTER').subscribe();
 
     const registerRequest = http.expectOne(`${environment.apiUrl}/auth/register`);
     expect(registerRequest.request.method).toBe('POST');
     expect(registerRequest.request.body).toEqual({
       organisationName: 'Demo Org',
       email: 'admin@example.com',
-      password: 'Password123!'
+      password: 'Password123!',
+      planCode: 'STARTER'
     });
     registerRequest.flush(authResponse);
 
@@ -88,9 +90,9 @@ describe('AuthService', () => {
 
     const googleRequest = http.expectOne(`${environment.apiUrl}/auth/google`);
     expect(googleRequest.request.method).toBe('POST');
-    expect(googleRequest.request.body).toEqual({
+    expect(googleRequest.request.body).toEqual(jasmine.objectContaining({
       idToken: 'google-id-token'
-    });
+    }));
     googleRequest.flush(authResponse);
 
     const meRequest = http.expectOne(`${environment.apiUrl}/auth/me`);
@@ -98,5 +100,27 @@ describe('AuthService', () => {
 
     expect(localStorage.getItem('jwt')).toBe('jwt-token');
     expect(service.user()).toEqual(meResponse);
+  });
+
+  it('exposes role helpers and sends owners to the owner console', () => {
+    service.login('owner@stockpilot.local', 'Owner@2026!').subscribe();
+
+    const loginRequest = http.expectOne(`${environment.apiUrl}/auth/login`);
+    loginRequest.flush({ ...authResponse, role: 'OWNER' });
+
+    const meRequest = http.expectOne(`${environment.apiUrl}/auth/me`);
+    meRequest.flush({
+      ...meResponse,
+      email: 'owner@stockpilot.local',
+      role: 'OWNER',
+      planCode: 'PRO',
+      onboardingCompleted: true
+    });
+
+    expect(service.hasRole('OWNER')).toBeTrue();
+    expect(service.hasAnyRole(['ADMIN', 'OWNER'])).toBeTrue();
+    expect(service.canAccess(['OWNER'])).toBeTrue();
+    expect(service.canUseProFeatures()).toBeTrue();
+    expect(service.landingPath()).toBe('/owner');
   });
 });

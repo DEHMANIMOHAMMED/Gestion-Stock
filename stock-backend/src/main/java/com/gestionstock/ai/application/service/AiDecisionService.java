@@ -9,6 +9,8 @@ import com.gestionstock.product.domain.repository.ProductRepository;
 import com.gestionstock.procurement.domain.model.ProductSupplier;
 import com.gestionstock.procurement.domain.model.Supplier;
 import com.gestionstock.procurement.domain.service.ProductSupplierService;
+import com.gestionstock.sales.domain.model.SalesDemand;
+import com.gestionstock.sales.domain.repository.SalesRepository;
 import com.gestionstock.security.TenantContext;
 import com.gestionstock.stock.domain.model.MovementType;
 import com.gestionstock.stock.domain.model.Stock;
@@ -42,6 +44,7 @@ public class AiDecisionService {
     private final StockRepository stockRepository;
     private final StockMovementRepository movementRepository;
     private final AiForecastRepository forecastRepository;
+    private final AiForecastSnapshotRepository forecastSnapshotRepository;
     private final AiStockoutRiskRepository stockoutRiskRepository;
     private final AiReorderRecommendationRepository reorderRepository;
     private final AiAnomalyRepository anomalyRepository;
@@ -49,6 +52,7 @@ public class AiDecisionService {
     private final AiRunRepository runRepository;
     private final AiEngineClient aiEngineClient;
     private final ProductSupplierService productSupplierService;
+    private final SalesRepository salesRepository;
 
     @Transactional
     @CacheEvict(value = "aiDashboard", key = "#root.target.tenantCacheKey()")
@@ -104,6 +108,25 @@ public class AiDecisionService {
     }
 
     @Transactional
+    public List<AiForecastBacktestResponse> getForecastBacktests(Long productId, Integer horizonDays) {
+        Long organisationId = TenantContext.requireOrganisationId();
+        ensureInitialSnapshot(organisationId);
+        int horizon = horizonDays == null ? 30 : horizonDays;
+        Map<Long, Product> products = productMap(organisationId);
+        Map<Long, AiForecastEntity> latestForecasts = forecastRepository
+                .findByOrganisationIdAndHorizonDaysOrderByGeneratedAtDesc(organisationId, horizon)
+                .stream()
+                .collect(Collectors.toMap(AiForecastEntity::getProductId, Function.identity(), (first, ignored) -> first));
+        List<SalesDemand> demand = salesRepository.findDemandSince(organisationId, LocalDateTime.now().minusDays(horizon));
+
+        return latestForecasts.values().stream()
+                .filter(forecast -> productId == null || forecast.getProductId().equals(productId))
+                .map(forecast -> toBacktestResponse(forecast, products.get(forecast.getProductId()), demand))
+                .sorted(Comparator.comparing(AiForecastBacktestResponse::reliabilityScore).reversed())
+                .toList();
+    }
+
+    @Transactional
     public List<AiStockoutRiskResponse> getStockoutRisks() {
         Long organisationId = TenantContext.requireOrganisationId();
         ensureInitialSnapshot(organisationId);
@@ -149,6 +172,10 @@ public class AiDecisionService {
         List<StockMovement> movements = movementRepository.findHistory(organisationId, null, null, 0, 500);
         Map<Long, List<StockMovement>> movementsByProduct = movements.stream()
                 .collect(Collectors.groupingBy(StockMovement::productId));
+        Map<Long, List<SalesDemand>> salesByProduct = salesRepository.findDemandSince(organisationId, LocalDateTime.now().minusDays(90))
+                .stream()
+                .collect(Collectors.groupingBy(SalesDemand::productId));
+        Map<Long, Double> salesDemandByProduct = salesDemandByProduct(organisationId);
         LocalDateTime generatedAt = LocalDateTime.now();
 
         forecastRepository.deleteByOrganisationId(organisationId);
@@ -169,10 +196,20 @@ public class AiDecisionService {
 
         for (Product product : products) {
             int currentStock = stockByProductId.getOrDefault(product.id(), emptyStock(organisationId, product.id())).quantity();
-            double dailyDemand = dailyDemand(movementsByProduct.getOrDefault(product.id(), List.of()));
+            double dailyDemand = salesDemandByProduct.getOrDefault(
+                    product.id(),
+                    dailyDemand(movementsByProduct.getOrDefault(product.id(), List.of()))
+            );
 
             for (Integer horizon : FORECAST_HORIZONS) {
-                forecastRepository.save(toForecast(organisationId, product.id(), horizon, dailyDemand, generatedAt));
+                saveForecast(toForecast(
+                        organisationId,
+                        product.id(),
+                        horizon,
+                        dailyDemand,
+                        selectBestModel(product.id(), horizon, salesByProduct.getOrDefault(product.id(), List.of()), null),
+                        generatedAt
+                ));
             }
 
             AiStockoutRiskEntity risk = toStockoutRisk(organisationId, product, currentStock, dailyDemand, generatedAt);
@@ -207,15 +244,31 @@ public class AiDecisionService {
             AiEngineClient.DecisionResponse decision,
             LocalDateTime generatedAt
     ) {
-        decision.forecasts().forEach(forecast -> forecastRepository.save(AiForecastEntity.builder()
-                .organisationId(organisationId)
-                .productId(forecast.productId())
-                .horizonDays(forecast.horizonDays())
-                .predictedQuantity(forecast.predictedQuantity())
-                .confidenceScore(forecast.confidenceScore())
-                .modelName(forecast.modelName())
-                .generatedAt(generatedAt)
-                .build()));
+        Map<Long, List<SalesDemand>> salesByProduct = salesRepository.findDemandSince(organisationId, LocalDateTime.now().minusDays(90))
+                .stream()
+                .collect(Collectors.groupingBy(SalesDemand::productId));
+        decision.forecasts().forEach(forecast -> {
+            DemandModelSelection selection = selectBestModel(
+                    forecast.productId(),
+                    forecast.horizonDays(),
+                    salesByProduct.getOrDefault(forecast.productId(), List.of()),
+                    forecast.predictedQuantity()
+            );
+            saveForecast(AiForecastEntity.builder()
+                    .organisationId(organisationId)
+                    .productId(forecast.productId())
+                    .horizonDays(forecast.horizonDays())
+                    .predictedQuantity(selection.predictedQuantity())
+                    .confidenceScore(forecast.confidenceScore())
+                    .modelName(forecast.modelName())
+                    .selectedModel(selection.selectedModel())
+                    .modelSelectionReason(selection.reason())
+                    .movingAverageError(selection.movingAverageError())
+                    .seasonalError(selection.seasonalError())
+                    .fastapiError(selection.fastApiError())
+                    .generatedAt(generatedAt)
+                    .build());
+        });
 
         decision.stockoutRisks().forEach(risk -> stockoutRiskRepository.save(AiStockoutRiskEntity.builder()
                 .organisationId(organisationId)
@@ -278,8 +331,85 @@ public class AiDecisionService {
         );
     }
 
-    private AiForecastEntity toForecast(Long organisationId, Long productId, int horizonDays, double dailyDemand, LocalDateTime generatedAt) {
-        BigDecimal predictedQuantity = BigDecimal.valueOf(dailyDemand * horizonDays).setScale(2, RoundingMode.HALF_UP);
+    private DemandModelSelection selectBestModel(
+            Long productId,
+            int horizonDays,
+            List<SalesDemand> demand,
+            BigDecimal fastApiPrediction
+    ) {
+        int last30 = quantityBetween(demand, LocalDate.now().minusDays(29), LocalDate.now());
+        int previous30 = quantityBetween(demand, LocalDate.now().minusDays(59), LocalDate.now().minusDays(30));
+        int sameWeekdayVolume = sameWeekdayVolume(demand, horizonDays);
+
+        BigDecimal movingAveragePrediction = BigDecimal.valueOf((last30 / 30.0) * horizonDays).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal seasonalPrediction = BigDecimal.valueOf((sameWeekdayVolume / 4.0) * Math.max(1, horizonDays / 7.0)).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal actualBaseline = BigDecimal.valueOf(Math.max(1, last30));
+        BigDecimal movingAverageError = modelError(actualBaseline, BigDecimal.valueOf(previous30 == 0 ? last30 : previous30));
+        BigDecimal seasonalError = modelError(actualBaseline, BigDecimal.valueOf(sameWeekdayVolume == 0 ? last30 : sameWeekdayVolume));
+        BigDecimal fastApiError = fastApiPrediction == null ? null : modelError(actualBaseline, fastApiPrediction);
+
+        String selectedModel = "moving-average-v2";
+        BigDecimal selectedPrediction = movingAveragePrediction;
+        BigDecimal bestError = movingAverageError;
+        String reason = "Le moving average gagne avec l'erreur historique la plus faible.";
+
+        if (seasonalError.compareTo(bestError) < 0 && sameWeekdayVolume > 0) {
+            selectedModel = "seasonality-weekday-v1";
+            selectedPrediction = seasonalPrediction;
+            bestError = seasonalError;
+            reason = "La saisonnalite hebdomadaire explique mieux les ventes recentes.";
+        }
+        if (fastApiError != null && fastApiError.compareTo(bestError) < 0) {
+            selectedModel = "fastapi-model";
+            selectedPrediction = fastApiPrediction.setScale(2, RoundingMode.HALF_UP);
+            reason = "Le modele FastAPI presente le meilleur score sur l'historique recent.";
+        }
+        if (last30 < 5) {
+            reason = "Historique ventes faible: selection prudente, a recalibrer avec plus de donnees.";
+        }
+
+        return new DemandModelSelection(
+                selectedModel,
+                selectedPrediction.max(BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP),
+                reason,
+                movingAverageError,
+                seasonalError,
+                fastApiError
+        );
+    }
+
+    private int sameWeekdayVolume(List<SalesDemand> demand, int horizonDays) {
+        LocalDate from = LocalDate.now().minusDays(27);
+        List<java.time.DayOfWeek> futureDays = java.util.stream.IntStream.rangeClosed(1, Math.max(1, Math.min(horizonDays, 30)))
+                .mapToObj(offset -> LocalDate.now().plusDays(offset).getDayOfWeek())
+                .distinct()
+                .toList();
+        return demand.stream()
+                .filter(item -> !item.soldAt().toLocalDate().isBefore(from))
+                .filter(item -> futureDays.contains(item.soldAt().toLocalDate().getDayOfWeek()))
+                .mapToInt(SalesDemand::quantity)
+                .sum();
+    }
+
+    private BigDecimal modelError(BigDecimal actual, BigDecimal predicted) {
+        BigDecimal denominator = actual.compareTo(BigDecimal.ONE) < 0 ? BigDecimal.ONE : actual;
+        return actual.subtract(predicted == null ? BigDecimal.ZERO : predicted)
+                .abs()
+                .multiply(BigDecimal.valueOf(100))
+                .divide(denominator, 2, RoundingMode.HALF_UP);
+    }
+
+    private AiForecastEntity toForecast(
+            Long organisationId,
+            Long productId,
+            int horizonDays,
+            double dailyDemand,
+            DemandModelSelection selection,
+            LocalDateTime generatedAt
+    ) {
+        BigDecimal predictedQuantity = selection == null
+                ? BigDecimal.valueOf(dailyDemand * horizonDays).setScale(2, RoundingMode.HALF_UP)
+                : selection.predictedQuantity();
         BigDecimal confidenceScore = BigDecimal.valueOf(dailyDemand == 0 ? 55 : 72).setScale(2, RoundingMode.HALF_UP);
         return AiForecastEntity.builder()
                 .organisationId(organisationId)
@@ -287,9 +417,142 @@ public class AiDecisionService {
                 .horizonDays(horizonDays)
                 .predictedQuantity(predictedQuantity)
                 .confidenceScore(confidenceScore)
-                .modelName("moving-average-mvp")
+                .modelName(selection == null ? "moving-average-mvp" : selection.selectedModel())
+                .selectedModel(selection == null ? "moving-average-mvp" : selection.selectedModel())
+                .modelSelectionReason(selection == null ? "Selection par defaut faute d'historique." : selection.reason())
+                .movingAverageError(selection == null ? null : selection.movingAverageError())
+                .seasonalError(selection == null ? null : selection.seasonalError())
+                .fastapiError(selection == null ? null : selection.fastApiError())
                 .generatedAt(generatedAt)
                 .build();
+    }
+
+    private AiForecastEntity saveForecast(AiForecastEntity forecast) {
+        AiForecastEntity saved = forecastRepository.save(forecast);
+        forecastSnapshotRepository.save(AiForecastSnapshotEntity.builder()
+                .organisationId(saved.getOrganisationId())
+                .productId(saved.getProductId())
+                .horizonDays(saved.getHorizonDays())
+                .targetDate(saved.getGeneratedAt().toLocalDate().plusDays(saved.getHorizonDays()))
+                .predictedQuantity(saved.getPredictedQuantity())
+                .confidenceScore(saved.getConfidenceScore())
+                .modelName(saved.getModelName())
+                .selectedModel(saved.getSelectedModel())
+                .modelSelectionReason(saved.getModelSelectionReason())
+                .movingAverageError(saved.getMovingAverageError())
+                .seasonalError(saved.getSeasonalError())
+                .fastapiError(saved.getFastapiError())
+                .generatedAt(saved.getGeneratedAt())
+                .build());
+        return saved;
+    }
+
+    private AiForecastBacktestResponse toBacktestResponse(
+            AiForecastEntity forecast,
+            Product product,
+            List<SalesDemand> demand
+    ) {
+        LocalDate from = LocalDate.now().minusDays(forecast.getHorizonDays() - 1L);
+        BigDecimal predictedDaily = forecast.getPredictedQuantity()
+                .divide(BigDecimal.valueOf(forecast.getHorizonDays()), 2, RoundingMode.HALF_UP);
+        List<AiForecastBacktestPointResponse> points = java.util.stream.IntStream.range(0, forecast.getHorizonDays())
+                .mapToObj(offset -> {
+                    LocalDate date = from.plusDays(offset);
+                    int actual = demand.stream()
+                            .filter(item -> item.productId().equals(forecast.getProductId()))
+                            .filter(item -> item.soldAt().toLocalDate().isEqual(date))
+                            .mapToInt(SalesDemand::quantity)
+                            .sum();
+                    BigDecimal variance = forecastVariance(BigDecimal.valueOf(actual), predictedDaily);
+                    return new AiForecastBacktestPointResponse(date, actual, predictedDaily, variance);
+                })
+                .toList();
+        BigDecimal mae = meanAbsoluteError(points);
+        BigDecimal mape = meanAbsolutePercentError(points);
+        BigDecimal reliability = BigDecimal.valueOf(Math.max(0, 100 - mape.doubleValue()))
+                .setScale(2, RoundingMode.HALF_UP);
+        return new AiForecastBacktestResponse(
+                forecast.getProductId(),
+                product == null ? "Produit supprime" : product.name(),
+                product == null ? "-" : product.sku(),
+                forecast.getHorizonDays(),
+                mae,
+                mape,
+                reliability,
+                forecastQualityLevel(reliability, points),
+                forecastBacktestRecommendation(reliability, mape, points),
+                points
+        );
+    }
+
+    private BigDecimal forecastVariance(BigDecimal actual, BigDecimal predicted) {
+        if (predicted.compareTo(BigDecimal.ZERO) == 0) {
+            return actual.compareTo(BigDecimal.ZERO) == 0 ? BigDecimal.ZERO : BigDecimal.valueOf(100);
+        }
+        return actual.subtract(predicted)
+                .multiply(BigDecimal.valueOf(100))
+                .divide(predicted, 2, RoundingMode.HALF_UP);
+    }
+
+    private BigDecimal meanAbsoluteError(List<AiForecastBacktestPointResponse> points) {
+        if (points.isEmpty()) {
+            return BigDecimal.ZERO;
+        }
+        BigDecimal total = points.stream()
+                .map(point -> BigDecimal.valueOf(point.actualUnits()).subtract(point.predictedUnits()).abs())
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        return total.divide(BigDecimal.valueOf(points.size()), 2, RoundingMode.HALF_UP);
+    }
+
+    private BigDecimal meanAbsolutePercentError(List<AiForecastBacktestPointResponse> points) {
+        List<BigDecimal> errors = points.stream()
+                .filter(point -> point.actualUnits() > 0 || point.predictedUnits().compareTo(BigDecimal.ZERO) > 0)
+                .map(point -> {
+                    BigDecimal denominator = BigDecimal.valueOf(Math.max(1, point.actualUnits()));
+                    return BigDecimal.valueOf(point.actualUnits())
+                            .subtract(point.predictedUnits())
+                            .abs()
+                            .multiply(BigDecimal.valueOf(100))
+                            .divide(denominator, 2, RoundingMode.HALF_UP);
+                })
+                .toList();
+        if (errors.isEmpty()) {
+            return BigDecimal.ZERO;
+        }
+        return errors.stream().reduce(BigDecimal.ZERO, BigDecimal::add)
+                .divide(BigDecimal.valueOf(errors.size()), 2, RoundingMode.HALF_UP);
+    }
+
+    private String forecastQualityLevel(BigDecimal reliability, List<AiForecastBacktestPointResponse> points) {
+        int actualVolume = points.stream().mapToInt(AiForecastBacktestPointResponse::actualUnits).sum();
+        if (actualVolume < 5) {
+            return "INSUFFICIENT_DATA";
+        }
+        if (reliability.compareTo(BigDecimal.valueOf(75)) >= 0) {
+            return "HIGH";
+        }
+        if (reliability.compareTo(BigDecimal.valueOf(55)) >= 0) {
+            return "MEDIUM";
+        }
+        return "LOW";
+    }
+
+    private String forecastBacktestRecommendation(
+            BigDecimal reliability,
+            BigDecimal mape,
+            List<AiForecastBacktestPointResponse> points
+    ) {
+        int actualVolume = points.stream().mapToInt(AiForecastBacktestPointResponse::actualUnits).sum();
+        if (actualVolume < 5) {
+            return "Collecter plus de ventes avant de faire confiance au modele.";
+        }
+        if (reliability.compareTo(BigDecimal.valueOf(55)) < 0) {
+            return "Recalibrer le modele et verifier les ruptures cachees ou promotions.";
+        }
+        if (mape.compareTo(BigDecimal.valueOf(25)) > 0) {
+            return "Surveiller ce produit, l'ecart reste significatif.";
+        }
+        return "Modele exploitable pour les commandes automatiques.";
     }
 
     private AiStockoutRiskEntity toStockoutRisk(Long organisationId, Product product, int currentStock, double dailyDemand, LocalDateTime generatedAt) {
@@ -379,11 +642,36 @@ public class AiDecisionService {
         return outQuantity / (double) activeDays;
     }
 
+    private Map<Long, Double> salesDemandByProduct(Long organisationId) {
+        List<SalesDemand> demand = salesRepository.findDemandSince(organisationId, LocalDateTime.now().minusDays(90));
+        return demand.stream()
+                .collect(Collectors.groupingBy(
+                        SalesDemand::productId,
+                        Collectors.collectingAndThen(Collectors.toList(), this::dailyDemandFromSales)
+                ));
+    }
+
+    private double dailyDemandFromSales(List<SalesDemand> demand) {
+        if (demand.isEmpty()) {
+            return 0;
+        }
+        int total = demand.stream().mapToInt(SalesDemand::quantity).sum();
+        LocalDate oldest = demand.stream()
+                .map(item -> item.soldAt().toLocalDate())
+                .min(LocalDate::compareTo)
+                .orElse(LocalDate.now());
+        long days = Math.max(1, java.time.temporal.ChronoUnit.DAYS.between(oldest, LocalDate.now()) + 1);
+        return total / (double) days;
+    }
+
     private List<AiForecastResponse> toForecastResponses(Long organisationId, List<AiForecastEntity> forecasts) {
         Map<Long, Product> products = productMap(organisationId);
+        Map<Long, ForecastQuality> qualityByProduct = forecastQualityByProduct(organisationId);
         return forecasts.stream()
                 .map(entity -> {
                     Product product = products.get(entity.getProductId());
+                    ForecastQuality quality = qualityByProduct.getOrDefault(entity.getProductId(), ForecastQuality.empty());
+                    BigDecimal adjustedConfidence = adjustedConfidence(entity.getConfidenceScore(), quality);
                     return new AiForecastResponse(
                             entity.getId(),
                             entity.getProductId(),
@@ -391,12 +679,97 @@ public class AiDecisionService {
                             product == null ? "-" : product.sku(),
                             entity.getHorizonDays(),
                             entity.getPredictedQuantity(),
-                            entity.getConfidenceScore(),
+                            adjustedConfidence,
+                            confidenceLevel(adjustedConfidence, quality),
+                            quality.backtestErrorPercent(),
+                            quality.demandTrendPercent(),
+                            quality.salesVolume30Days(),
+                            demandSignal(quality),
                             entity.getModelName(),
+                            entity.getSelectedModel() == null ? entity.getModelName() : entity.getSelectedModel(),
+                            entity.getModelSelectionReason() == null ? "Selection par defaut." : entity.getModelSelectionReason(),
+                            nullToZero(entity.getMovingAverageError()),
+                            nullToZero(entity.getSeasonalError()),
+                            entity.getFastapiError(),
                             entity.getGeneratedAt()
                     );
                 })
                 .toList();
+    }
+
+    private BigDecimal nullToZero(BigDecimal value) {
+        return value == null ? BigDecimal.ZERO : value.setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private Map<Long, ForecastQuality> forecastQualityByProduct(Long organisationId) {
+        LocalDateTime now = LocalDateTime.now();
+        List<SalesDemand> recent = salesRepository.findDemandSince(organisationId, now.minusDays(60));
+        return recent.stream()
+                .collect(Collectors.groupingBy(
+                        SalesDemand::productId,
+                        Collectors.collectingAndThen(Collectors.toList(), this::forecastQuality)
+                ));
+    }
+
+    private ForecastQuality forecastQuality(List<SalesDemand> demand) {
+        int last30 = quantityBetween(demand, LocalDate.now().minusDays(29), LocalDate.now());
+        int previous30 = quantityBetween(demand, LocalDate.now().minusDays(59), LocalDate.now().minusDays(30));
+        double trend = previous30 == 0
+                ? (last30 == 0 ? 0 : 100)
+                : ((last30 - previous30) * 100.0) / previous30;
+        double expected = previous30 == 0 ? last30 : previous30;
+        double error = expected == 0 ? 0 : Math.abs(last30 - expected) * 100.0 / expected;
+        return new ForecastQuality(
+                BigDecimal.valueOf(error).setScale(2, RoundingMode.HALF_UP),
+                BigDecimal.valueOf(trend).setScale(2, RoundingMode.HALF_UP),
+                last30
+        );
+    }
+
+    private int quantityBetween(List<SalesDemand> demand, LocalDate from, LocalDate to) {
+        return demand.stream()
+                .filter(item -> {
+                    LocalDate date = item.soldAt().toLocalDate();
+                    return !date.isBefore(from) && !date.isAfter(to);
+                })
+                .mapToInt(SalesDemand::quantity)
+                .sum();
+    }
+
+    private BigDecimal adjustedConfidence(BigDecimal baseConfidence, ForecastQuality quality) {
+        double base = baseConfidence == null ? 60 : baseConfidence.doubleValue();
+        double volumeBonus = Math.min(14, quality.salesVolume30Days() / 4.0);
+        double errorPenalty = Math.min(28, quality.backtestErrorPercent().doubleValue() / 2.0);
+        double trendPenalty = Math.abs(quality.demandTrendPercent().doubleValue()) > 80 ? 8 : 0;
+        double adjusted = Math.max(35, Math.min(95, base + volumeBonus - errorPenalty - trendPenalty));
+        return BigDecimal.valueOf(adjusted).setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private String confidenceLevel(BigDecimal confidence, ForecastQuality quality) {
+        if (quality.salesVolume30Days() < 5) {
+            return "INSUFFICIENT_DATA";
+        }
+        if (confidence.doubleValue() >= 78) {
+            return "HIGH";
+        }
+        if (confidence.doubleValue() >= 60) {
+            return "MEDIUM";
+        }
+        return "LOW";
+    }
+
+    private String demandSignal(ForecastQuality quality) {
+        if (quality.salesVolume30Days() < 5) {
+            return "Donnees ventes insuffisantes";
+        }
+        double trend = quality.demandTrendPercent().doubleValue();
+        if (trend >= 25) {
+            return "Demande en hausse";
+        }
+        if (trend <= -25) {
+            return "Demande en baisse";
+        }
+        return "Demande stable";
     }
 
     private List<AiStockoutRiskResponse> toRiskResponses(Long organisationId, List<AiStockoutRiskEntity> risks) {
@@ -515,6 +888,26 @@ public class AiDecisionService {
             int anomaliesCount,
             int insightsCount,
             String modelSource
+    ) {
+    }
+
+    private record ForecastQuality(
+            BigDecimal backtestErrorPercent,
+            BigDecimal demandTrendPercent,
+            Integer salesVolume30Days
+    ) {
+        private static ForecastQuality empty() {
+            return new ForecastQuality(BigDecimal.ZERO, BigDecimal.ZERO, 0);
+        }
+    }
+
+    private record DemandModelSelection(
+            String selectedModel,
+            BigDecimal predictedQuantity,
+            String reason,
+            BigDecimal movingAverageError,
+            BigDecimal seasonalError,
+            BigDecimal fastApiError
     ) {
     }
 }

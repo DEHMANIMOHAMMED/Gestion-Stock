@@ -5,12 +5,14 @@ import { ProductService, Product } from '../products/product.service';
 import { signal } from '@angular/core';
 import { MovementFormComponent } from './movement-form.component';
 import { StockHistoryComponent } from './stock-history.component';
+import { PageHeaderComponent } from '../shared/ui/page-header.component';
+import { EmptyStateComponent } from '../shared/ui/empty-state.component';
 
 // Displays stock levels per product and allows registering movements.
 @Component({
   selector: 'app-stock',
   standalone: true,
-  imports: [CommonModule, MovementFormComponent, StockHistoryComponent],
+  imports: [CommonModule, MovementFormComponent, StockHistoryComponent, PageHeaderComponent, EmptyStateComponent],
   templateUrl: './stock.component.html',
   styleUrls: ['./stock.component.scss']
 })
@@ -21,6 +23,7 @@ export class StockComponent implements OnInit {
   products = signal<Product[]>([]);
   stockMap = signal<Record<number, number>>({});
   selectedProductId: number | null = null;
+  selectedType: 'IN' | 'OUT' | 'ADJUST' | null = null;
   showForm = false;
 
   ngOnInit() {
@@ -42,8 +45,9 @@ export class StockComponent implements OnInit {
     });
   }
 
-  openMovement(productId: number) {
+  openMovement(productId: number, type: 'IN' | 'OUT' | 'ADJUST' = 'IN') {
     this.selectedProductId = productId;
+    this.selectedType = type;
     this.showForm = true;
   }
 

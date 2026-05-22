@@ -12,6 +12,11 @@ import { StockService } from './stock.service';
 })
 export class MovementFormComponent {
   @Input() productId!: number;
+  @Input() set initialType(value: 'IN' | 'OUT' | 'ADJUST' | null) {
+    if (value) {
+      this.form.patchValue({ type: value });
+    }
+  }
   @Output() closed = new EventEmitter<void>();
 
   private fb = inject(FormBuilder);

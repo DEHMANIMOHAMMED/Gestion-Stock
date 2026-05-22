@@ -1,12 +1,16 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { DashboardService, DashboardSummary, LowStockAlert } from './dashboard.service';
 import { AiExecutiveDashboard, AiProductHealth, AiService } from '../ai-reports/ai.service';
+import { LoadingStateComponent } from '../shared/ui/loading-state.component';
+import { PageHeaderComponent } from '../shared/ui/page-header.component';
+import { StatCardComponent } from '../shared/ui/stat-card.component';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, RouterLink, PageHeaderComponent, StatCardComponent, LoadingStateComponent],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.scss']
 })
@@ -33,6 +37,20 @@ export class DashboardComponent implements OnInit {
       ...dashboard.topRisks.slice(0, 3).map((item) => `Traiter ${item.productName}: ${item.actionRecommendation}`),
       ...dashboard.supplierIssues.slice(0, 2).map((item) => `Verifier fournisseur ${item.supplierName}: ${item.reason}`)
     ].slice(0, 5);
+  });
+
+  businessHealth = computed(() => {
+    const dashboard = this.aiDashboard();
+    if (!dashboard) {
+      return { label: 'Indisponible', tone: 'warning' };
+    }
+    if (dashboard.stockHealthAverage >= 75 && dashboard.highRiskCount === 0) {
+      return { label: 'Stable', tone: 'success' };
+    }
+    if (dashboard.stockHealthAverage >= 55) {
+      return { label: 'A surveiller', tone: 'warning' };
+    }
+    return { label: 'Prioritaire', tone: 'danger' };
   });
 
   ngOnInit() {

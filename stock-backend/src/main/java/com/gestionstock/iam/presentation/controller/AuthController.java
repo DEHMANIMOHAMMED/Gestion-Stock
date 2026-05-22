@@ -41,9 +41,15 @@ public class AuthController {
         return ResponseEntity.ok(authService.updateOrganisationProfile(request));
     }
 
+    @PostMapping("/change-password")
+    public ResponseEntity<Void> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
+        authService.changePassword(request);
+        return ResponseEntity.noContent().build();
+    }
+
     @PostMapping("/google")
     public ResponseEntity<AuthResponse> loginGoogle(@Valid @RequestBody GoogleLoginRequest request) {
-        return ResponseEntity.ok(authService.loginWithGoogle(request.idToken()));
+        return ResponseEntity.ok(authService.loginWithGoogle(request.idToken(), request.planCode()));
     }
 
 

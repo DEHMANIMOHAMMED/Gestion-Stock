@@ -1,7 +1,8 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './shared/auth.guard';
-import { adminGuard } from './shared/admin.guard';
 import { onboardingGuard } from './shared/onboarding.guard';
+import { roleGuard } from './shared/role.guard';
+import { planGuard } from './shared/plan.guard';
 
 // Application routes. Lazy-load components to reduce the initial bundle size.
 export const routes: Routes = [
@@ -20,7 +21,15 @@ export const routes: Routes = [
     loadComponent: () => import('./dashboard/dashboard.component').then((m) => m.DashboardComponent)
   },
   {
+    path: 'owner',
+    canActivate: [authGuard, roleGuard],
+    data: { roles: ['OWNER'] },
+    loadComponent: () => import('./owner/owner.component').then((m) => m.OwnerComponent)
+  },
+  {
     path: 'demo-accounts',
+    canActivate: [authGuard, roleGuard],
+    data: { roles: ['OWNER'] },
     loadComponent: () => import('./demo/demo-accounts.component').then((m) => m.DemoAccountsComponent)
   },
   {
@@ -34,39 +43,63 @@ export const routes: Routes = [
     loadComponent: () => import('./stock/stock.component').then((m) => m.StockComponent)
   },
   {
-    path: 'procurement',
+    path: 'sales',
     canActivate: [authGuard, onboardingGuard],
+    loadComponent: () => import('./sales/sales.component').then((m) => m.SalesComponent)
+  },
+  {
+    path: 'procurement',
+    canActivate: [authGuard, onboardingGuard, roleGuard, planGuard],
+    data: { roles: ['ADMIN'], plans: ['PRO'] },
     loadComponent: () => import('./procurement/procurement.component').then((m) => m.ProcurementComponent)
   },
   {
     path: 'approvals',
-    canActivate: [authGuard, onboardingGuard],
+    canActivate: [authGuard, onboardingGuard, roleGuard, planGuard],
+    data: { roles: ['ADMIN'], plans: ['PRO'] },
     loadComponent: () => import('./procurement/approval-center.component').then((m) => m.ApprovalCenterComponent)
   },
   {
     path: 'notifications',
-    canActivate: [authGuard, onboardingGuard, adminGuard],
+    canActivate: [authGuard, onboardingGuard, roleGuard, planGuard],
+    data: { roles: ['ADMIN'], plans: ['PRO'] },
     loadComponent: () => import('./notifications/notification-center.component').then((m) => m.NotificationCenterComponent)
   },
   {
     path: 'security-audit',
-    canActivate: [authGuard, onboardingGuard, adminGuard],
+    canActivate: [authGuard, onboardingGuard, roleGuard, planGuard],
+    data: { roles: ['ADMIN'], plans: ['PRO'] },
     loadComponent: () => import('./admin/security-audit.component').then((m) => m.SecurityAuditComponent)
   },
   {
     path: 'system-health',
-    canActivate: [authGuard, onboardingGuard, adminGuard],
+    canActivate: [authGuard, onboardingGuard, roleGuard, planGuard],
+    data: { roles: ['ADMIN'], plans: ['PRO'] },
     loadComponent: () => import('./admin/system-health.component').then((m) => m.SystemHealthComponent)
   },
   {
+    path: 'model-registry',
+    canActivate: [authGuard, onboardingGuard, roleGuard, planGuard],
+    data: { roles: ['ADMIN'], plans: ['PRO'] },
+    loadComponent: () => import('./admin/model-registry.component').then((m) => m.ModelRegistryComponent)
+  },
+  {
     path: 'executive-timeline',
-    canActivate: [authGuard, onboardingGuard, adminGuard],
+    canActivate: [authGuard, onboardingGuard, roleGuard, planGuard],
+    data: { roles: ['ADMIN'], plans: ['PRO'] },
     loadComponent: () => import('./admin/executive-timeline.component').then((m) => m.ExecutiveTimelineComponent)
   },
   {
     path: 'daily-report',
-    canActivate: [authGuard, onboardingGuard, adminGuard],
+    canActivate: [authGuard, onboardingGuard, roleGuard, planGuard],
+    data: { roles: ['ADMIN'], plans: ['PRO'] },
     loadComponent: () => import('./admin/daily-report.component').then((m) => m.DailyReportComponent)
+  },
+  {
+    path: 'users',
+    canActivate: [authGuard, onboardingGuard, roleGuard],
+    data: { roles: ['ADMIN'] },
+    loadComponent: () => import('./users/organisation-users.component').then((m) => m.OrganisationUsersComponent)
   },
   {
     path: 'onboarding',
@@ -74,28 +107,55 @@ export const routes: Routes = [
     loadComponent: () => import('./auth/onboarding.component').then((m) => m.OnboardingComponent)
   },
   {
-    path: 'suppliers/:id/360',
+    path: 'organisation-settings',
+    canActivate: [authGuard, onboardingGuard, roleGuard],
+    data: { roles: ['ADMIN'] },
+    loadComponent: () => import('./auth/onboarding.component').then((m) => m.OnboardingComponent)
+  },
+  {
+    path: 'billing',
+    canActivate: [authGuard, onboardingGuard, roleGuard],
+    data: { roles: ['ADMIN'] },
+    loadComponent: () => import('./billing/billing.component').then((m) => m.BillingComponent)
+  },
+  {
+    path: 'support',
     canActivate: [authGuard, onboardingGuard],
+    loadComponent: () => import('./support/support.component').then((m) => m.SupportComponent)
+  },
+  {
+    path: 'suppliers/:id/360',
+    canActivate: [authGuard, onboardingGuard, roleGuard, planGuard],
+    data: { roles: ['ADMIN'], plans: ['PRO'] },
     loadComponent: () => import('./procurement/supplier-360.component').then((m) => m.Supplier360Component)
   },
   {
+    path: 'forbidden',
+    canActivate: [authGuard],
+    loadComponent: () => import('./shared/forbidden.component').then((m) => m.ForbiddenComponent)
+  },
+  {
     path: 'prediction',
-    canActivate: [authGuard, onboardingGuard],
+    canActivate: [authGuard, onboardingGuard, planGuard],
+    data: { plans: ['PRO'] },
     loadComponent: () => import('./ai-reports/prediction.component').then((m) => m.PredictionComponent)
   },
   {
     path: 'ai-dashboard',
-    canActivate: [authGuard, onboardingGuard],
+    canActivate: [authGuard, onboardingGuard, planGuard],
+    data: { plans: ['PRO'] },
     loadComponent: () => import('./ai-reports/ai-dashboard.component').then((m) => m.AiDashboardComponent)
   },
   {
     path: 'stock-health',
-    canActivate: [authGuard, onboardingGuard],
+    canActivate: [authGuard, onboardingGuard, planGuard],
+    data: { plans: ['PRO'] },
     loadComponent: () => import('./ai-reports/stock-health.component').then((m) => m.StockHealthComponent)
   },
   {
     path: 'copilot',
-    canActivate: [authGuard, onboardingGuard],
+    canActivate: [authGuard, onboardingGuard, planGuard],
+    data: { plans: ['PRO'] },
     loadComponent: () => import('./ai-reports/copilot.component').then((m) => m.CopilotComponent)
   },
   {

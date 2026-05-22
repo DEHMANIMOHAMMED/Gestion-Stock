@@ -9,6 +9,7 @@ import com.gestionstock.notification.domain.model.AdminNotification;
 import com.gestionstock.notification.domain.model.AdminNotificationPreferences;
 import com.gestionstock.notification.domain.service.AdminNotificationService;
 import com.gestionstock.procurement.domain.service.PurchaseOrderService;
+import com.gestionstock.security.PlanAccessService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
@@ -26,9 +27,11 @@ public class AdminNotificationController {
 
     private final AdminNotificationService service;
     private final PurchaseOrderService purchaseOrderService;
+    private final PlanAccessService planAccessService;
 
     @GetMapping
     public ResponseEntity<List<AdminNotificationResponse>> latest() {
+        planAccessService.requireProPlan();
         return ResponseEntity.ok(service.latest().stream().map(this::toResponse).toList());
     }
 
@@ -38,16 +41,19 @@ public class AdminNotificationController {
             @RequestParam(required = false) String severity,
             @RequestParam(required = false) String readStatus
     ) {
+        planAccessService.requireProPlan();
         return ResponseEntity.ok(service.history(type, severity, readStatus).stream().map(this::toResponse).toList());
     }
 
     @GetMapping("/unread-count")
     public ResponseEntity<Map<String, Long>> unreadCount() {
+        planAccessService.requireProPlan();
         return ResponseEntity.ok(Map.of("unreadCount", service.unreadCount()));
     }
 
     @PostMapping("/{id}/read")
     public ResponseEntity<Void> markRead(@PathVariable Long id) {
+        planAccessService.requireProPlan();
         service.markRead(id);
         return ResponseEntity.noContent().build();
     }
@@ -57,6 +63,7 @@ public class AdminNotificationController {
             @PathVariable Long id,
             @Valid @RequestBody NotificationActionRequest request
     ) {
+        planAccessService.requireProPlan();
         AdminNotification notification = service.get(id);
         return switch (request.action()) {
             case "APPROVE_ORDER" -> {
@@ -76,6 +83,7 @@ public class AdminNotificationController {
 
     @GetMapping("/{id}/actions")
     public ResponseEntity<List<AdminNotificationActionResponse>> actions(@PathVariable Long id) {
+        planAccessService.requireProPlan();
         return ResponseEntity.ok(service.actions(id).stream()
                 .map(action -> new AdminNotificationActionResponse(
                         action.getId(),
@@ -89,6 +97,7 @@ public class AdminNotificationController {
 
     @GetMapping("/preferences")
     public ResponseEntity<AdminNotificationPreferencesResponse> preferences() {
+        planAccessService.requireProPlan();
         return ResponseEntity.ok(toPreferencesResponse(service.preferences()));
     }
 
@@ -96,6 +105,7 @@ public class AdminNotificationController {
     public ResponseEntity<AdminNotificationPreferencesResponse> updatePreferences(
             @RequestBody AdminNotificationPreferencesRequest request
     ) {
+        planAccessService.requireProPlan();
         return ResponseEntity.ok(toPreferencesResponse(service.updatePreferences(
                 request.thresholdNotificationsEnabled(),
                 request.criticalStockoutNotificationsEnabled()
@@ -104,6 +114,7 @@ public class AdminNotificationController {
 
     @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter stream() {
+        planAccessService.requireProPlan();
         return service.stream();
     }
 

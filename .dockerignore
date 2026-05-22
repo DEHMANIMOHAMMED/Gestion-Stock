@@ -1,0 +1,9 @@
+.git
+.dev-logs
+**/.venv
+**/node_modules
+**/dist
+**/target
+**/data
+**/.pytest_cache
+*.log

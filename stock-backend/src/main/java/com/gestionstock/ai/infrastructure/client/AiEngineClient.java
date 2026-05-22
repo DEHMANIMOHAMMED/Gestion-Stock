@@ -5,11 +5,13 @@ import com.gestionstock.stock.domain.model.Stock;
 import com.gestionstock.stock.domain.model.StockMovement;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -23,12 +25,21 @@ public class AiEngineClient {
 
     public AiEngineClient(
             @Value("${ai.service.enabled:false}") boolean enabled,
-            @Value("${ai.service.url:http://127.0.0.1:8000}") String serviceUrl
+            @Value("${ai.service.url:http://127.0.0.1:8000}") String serviceUrl,
+            @Value("${ai.service.internal-key:}") String internalKey
     ) {
         this.enabled = enabled;
-        this.restClient = RestClient.builder()
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(Duration.ofSeconds(2));
+        requestFactory.setReadTimeout(Duration.ofSeconds(8));
+
+        RestClient.Builder builder = RestClient.builder()
                 .baseUrl(serviceUrl)
-                .build();
+                .requestFactory(requestFactory);
+        if (internalKey != null && !internalKey.isBlank()) {
+            builder.defaultHeader("X-StockPilot-Internal-Key", internalKey);
+        }
+        this.restClient = builder.build();
     }
 
     public Optional<DecisionResponse> generate(

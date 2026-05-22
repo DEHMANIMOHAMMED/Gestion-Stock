@@ -3,6 +3,7 @@ import { CommonModule, DatePipe } from "@angular/common";
 import { StockService, StockMovementHistory } from "./stock.service";
 import { ProductService, Product } from "../products/product.service";
 import { FormsModule } from "@angular/forms";
+import { AuthService } from "../auth/auth.service";
 
 @Component({
   selector: "app-stock-history",
@@ -14,6 +15,7 @@ import { FormsModule } from "@angular/forms";
 export class StockHistoryComponent implements OnInit {
   private stockService = inject(StockService);
   private productService = inject(ProductService);
+  auth = inject(AuthService);
 
   history = signal<StockMovementHistory[]>([]);
   total = 0;
@@ -57,6 +59,9 @@ export class StockHistoryComponent implements OnInit {
   }
 
   exportCsv() {
+    if (!this.auth.hasRole("ADMIN")) {
+      return;
+    }
     const params: { productId?: number; type?: string } = {};
     if (this.filters.productId) params.productId = this.filters.productId;
     if (this.filters.type) params.type = this.filters.type;
@@ -71,6 +76,9 @@ export class StockHistoryComponent implements OnInit {
   }
 
   exportPdf() {
+    if (!this.auth.hasRole("ADMIN")) {
+      return;
+    }
     const params: { productId?: number; type?: string } = {};
     if (this.filters.productId) params.productId = this.filters.productId;
     if (this.filters.type) params.type = this.filters.type;

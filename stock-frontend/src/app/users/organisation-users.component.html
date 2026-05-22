@@ -1,0 +1,127 @@
+<main class="users-page">
+  <app-page-header
+    eyebrow="Administration"
+    title="Utilisateurs"
+    description="Creer les comptes de l'organisation et gerer les roles ADMIN ou USER."
+  >
+    <button type="button" class="secondary" (click)="load()" [disabled]="loading()">Actualiser</button>
+  </app-page-header>
+
+  <p class="message" *ngIf="message()">{{ message() }}</p>
+
+  <section class="plan-notice" [class.limit]="starterLimitReached()">
+    <strong>{{ userLimitLabel() }}</strong>
+    <span *ngIf="isStarterPlan() && !starterLimitReached()">Starter permet jusqu'a 3 utilisateurs pour les petites equipes.</span>
+    <span *ngIf="starterLimitReached()">Limite Starter atteinte. Passe en Pro pour ajouter plus de comptes.</span>
+    <span *ngIf="!isStarterPlan()">Le plan Pro permet d'ajouter autant de comptes que necessaire.</span>
+    <a routerLink="/billing" *ngIf="starterLimitReached()">Voir l'abonnement</a>
+  </section>
+
+  <section class="panel">
+    <h2>Nouvel utilisateur</h2>
+    <form class="user-form" (ngSubmit)="create()">
+      <label>
+        Email
+        <input name="email" type="email" [(ngModel)]="form.email" required />
+      </label>
+      <label>
+        Mot de passe temporaire
+        <input name="password" type="password" minlength="8" [(ngModel)]="form.password" required />
+      </label>
+      <label>
+        Role
+        <select name="role" [(ngModel)]="form.role" required>
+          <option value="USER">USER</option>
+          <option value="ADMIN">ADMIN</option>
+        </select>
+      </label>
+      <button type="submit" [disabled]="saving() || !form.email || !form.password || starterLimitReached()">
+        {{ saving() ? 'Creation...' : 'Creer utilisateur' }}
+      </button>
+    </form>
+  </section>
+
+  <section class="panel">
+    <h2>Mon mot de passe</h2>
+    <form class="password-form" (ngSubmit)="changeOwnPassword()">
+      <label>
+        Mot de passe actuel
+        <input name="currentPassword" type="password" [(ngModel)]="passwordForm.currentPassword" required />
+      </label>
+      <label>
+        Nouveau mot de passe
+        <input name="newPassword" type="password" minlength="8" [(ngModel)]="passwordForm.newPassword" required />
+      </label>
+      <button type="submit">Changer mon mot de passe</button>
+    </form>
+  </section>
+
+  <app-loading-state *ngIf="loading()" message="Chargement des utilisateurs..."></app-loading-state>
+
+  <app-empty-state
+    *ngIf="!loading() && !users().length"
+    title="Aucun utilisateur"
+    description="Cree un premier compte USER ou ADMIN pour ton organisation."
+  ></app-empty-state>
+
+  <section class="panel table-panel" *ngIf="!loading() && users().length">
+    <div class="panel-heading">
+      <div>
+        <span class="eyebrow">Organisation</span>
+        <h2>{{ users()[0].organisationName }}</h2>
+      </div>
+      <span>{{ users().length }} compte(s)</span>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Statut</th>
+            <th>Dernier login</th>
+            <th>Changer role</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let user of users()">
+            <td>
+              <strong>{{ user.email }}</strong>
+              <small *ngIf="user.id === auth.user()?.userId">Compte connecte</small>
+            </td>
+            <td><app-role-badge [role]="user.role"></app-role-badge></td>
+            <td><span class="status" [class.disabled]="!user.enabled">{{ user.enabled ? 'Actif' : 'Desactive' }}</span></td>
+            <td>{{ user.lastLoginAt ? (user.lastLoginAt | date:'short') : '-' }}</td>
+            <td>
+              <select
+                [ngModel]="user.role"
+                (ngModelChange)="updateRole(user, $event)"
+                [ngModelOptions]="{ standalone: true }"
+                [disabled]="user.id === auth.user()?.userId"
+              >
+                <option value="USER">USER</option>
+                <option value="ADMIN">ADMIN</option>
+              </select>
+            </td>
+            <td>
+              <div class="row-actions">
+                <button type="button" class="secondary" *ngIf="user.enabled && user.id !== auth.user()?.userId" (click)="setEnabled(user, false)">Desactiver</button>
+                <button type="button" *ngIf="!user.enabled" (click)="setEnabled(user, true)">Reactiver</button>
+                <input
+                  type="password"
+                  placeholder="Mot de passe temp."
+                  [ngModel]="resetPasswords()[user.id] || ''"
+                  (ngModelChange)="setResetPassword(user.id, $event)"
+                  [ngModelOptions]="{ standalone: true }"
+                />
+                <button type="button" class="secondary" (click)="resetPassword(user)">Reset</button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>

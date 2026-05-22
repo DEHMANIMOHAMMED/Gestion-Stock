@@ -1,19 +1,19 @@
 <div class="products-page">
-  <div class="products-head">
-    <div>
-      <p class="eyebrow">Inventory</p>
-      <h2>Produits</h2>
-    </div>
-    <div class="products-actions">
+  <app-page-header
+    eyebrow="Inventory"
+    title="Produits"
+    description="Catalogue produits de l'organisation avec SKU, seuils et unite de stock."
+  >
+    <div class="products-actions" *ngIf="auth.hasRole('ADMIN')">
       <label class="import-button">
         Import CSV/Excel
         <input type="file" accept=".csv,.xlsx,.xls" (change)="importProducts($event)" />
       </label>
       <button (click)="add()">Ajouter un produit</button>
     </div>
-  </div>
+  </app-page-header>
 
-  <section class="import-help">
+  <section class="import-help" *ngIf="auth.hasRole('ADMIN')">
     Format attendu: sku, name, category, minStock, unit, initialStock
   </section>
   <section class="import-preview" *ngIf="importPreview() as preview">
@@ -49,6 +49,8 @@
     (cancel)="cancel()"
   ></app-product-form>
 
+  <app-loading-state *ngIf="loading()" message="Chargement des produits..."></app-loading-state>
+
   <table class="product-table" *ngIf="products().length > 0">
     <thead>
       <tr>
@@ -57,7 +59,7 @@
         <th>Categorie</th>
         <th>Min. stock</th>
         <th>Unite</th>
-        <th>Actions</th>
+        <th *ngIf="auth.hasRole('ADMIN')">Actions</th>
       </tr>
     </thead>
     <tbody>
@@ -67,11 +69,26 @@
         <td>{{ p.category }}</td>
         <td>{{ p.minStock }}</td>
         <td>{{ p.unit }}</td>
-        <td>
+        <td *ngIf="auth.hasRole('ADMIN')">
           <button (click)="edit(p)">Modifier</button>
           <button (click)="delete(p)">Supprimer</button>
         </td>
       </tr>
     </tbody>
   </table>
+
+  <app-empty-state
+    *ngIf="!loading() && products().length === 0"
+    title="Aucun produit"
+    message="Ajoute ou importe des produits pour commencer a piloter le stock."
+  ></app-empty-state>
+
+  <app-confirm-dialog
+    [open]="!!productToDelete()"
+    title="Supprimer le produit"
+    [message]="'Supprimer ' + (productToDelete()?.name || 'ce produit') + ' ? Cette action est irreversible.'"
+    confirmLabel="Supprimer"
+    (confirm)="confirmDelete()"
+    (cancel)="productToDelete.set(null)"
+  ></app-confirm-dialog>
 </div>

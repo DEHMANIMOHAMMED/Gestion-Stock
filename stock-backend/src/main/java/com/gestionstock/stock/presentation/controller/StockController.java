@@ -7,6 +7,7 @@ import com.gestionstock.stock.application.mapper.StockMapper;
 import com.gestionstock.stock.application.service.StockHistoryExportService;
 import com.gestionstock.stock.domain.model.Stock;
 import com.gestionstock.stock.domain.service.StockService;
+import com.gestionstock.security.PermissionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -22,6 +23,7 @@ public class StockController {
     private final StockService stockService;
     private final StockMapper stockMapper;
     private final StockHistoryExportService exportService;
+    private final PermissionService permissionService;
 
     @PostMapping("/movement")
     public ResponseEntity<Void> registerMovement(
@@ -59,6 +61,7 @@ public class StockController {
             @RequestParam(required = false) Long productId,
             @RequestParam(required = false) String type
     ) {
+        permissionService.requireAdmin();
         var allData = stockService.getAllHistory(productId, type);
         return ResponseEntity.ok()
                 .header("Content-Disposition", "attachment; filename=stock_history.csv")
@@ -71,6 +74,7 @@ public class StockController {
             @RequestParam(required = false) String type
     ) throws IOException {
 
+        permissionService.requireAdmin();
         var allData = stockService.getAllHistory(productId, type);
         return ResponseEntity.ok()
                 .header("Content-Disposition", "attachment; filename=stock_history.pdf")

@@ -1,0 +1,301 @@
+.owner-page {
+  display: grid;
+  gap: 22px;
+}
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: 0 24px 70px rgba(20, 34, 30, 0.08);
+}
+
+.eyebrow {
+  color: var(--green-strong);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+button {
+  background: var(--green);
+  border: 0;
+  border-radius: 10px;
+  color: #fff;
+  cursor: pointer;
+  font-weight: 800;
+  padding: 12px 16px;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+button.secondary {
+  background: #17202a;
+}
+
+button.danger {
+  background: #b42318;
+}
+
+.message {
+  background: #eef8f0;
+  border: 1px solid #bde4c6;
+  border-radius: 12px;
+  color: var(--green-strong);
+  margin: 0;
+  padding: 12px 14px;
+}
+
+.support-ticket {
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 12px;
+  padding-top: 16px;
+}
+
+.support-ticket.open {
+  border-left: 4px solid var(--green);
+  padding-left: 14px;
+}
+
+.ticket-head {
+  align-items: flex-start;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.ticket-head small {
+  color: var(--muted);
+  display: block;
+  margin-top: 4px;
+}
+
+.support-ticket p {
+  color: var(--muted);
+  line-height: 1.55;
+  margin: 0;
+}
+
+.ticket-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.support-image {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  max-height: 260px;
+  max-width: min(420px, 100%);
+  object-fit: contain;
+}
+
+.support-image.small {
+  max-height: 180px;
+}
+
+.thread {
+  display: grid;
+  gap: 10px;
+}
+
+.reply,
+.reply-form,
+.account-list {
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.reply {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+}
+
+.reply.owner {
+  border-color: #9fd7aa;
+}
+
+.reply-form {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+}
+
+.inline-actions,
+.support-admin-actions,
+.account-row {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.account-list {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+}
+
+.account-row {
+  justify-content: space-between;
+}
+
+.account-row > div {
+  min-width: 220px;
+}
+
+.account-row input {
+  min-width: 220px;
+}
+
+.metric-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.panel {
+  display: grid;
+  gap: 18px;
+  padding: 22px;
+}
+
+.empty {
+  color: var(--muted);
+}
+
+.panel-heading {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+
+  h2 {
+    font-size: 22px;
+    margin: 4px 0 0;
+  }
+
+  span:last-child {
+    color: var(--muted);
+    font-size: 13px;
+  }
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+table {
+  border-collapse: collapse;
+  min-width: 980px;
+  width: 100%;
+
+  th,
+  td {
+    border-bottom: 1px solid var(--line);
+    padding: 14px 12px;
+    text-align: left;
+  }
+
+  th {
+    color: var(--muted);
+    font-size: 11px;
+    text-transform: uppercase;
+  }
+
+  td small {
+    color: var(--muted);
+    display: block;
+    margin-top: 4px;
+  }
+}
+
+.status {
+  background: #eaf7ed;
+  border-radius: 999px;
+  color: var(--green-strong);
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 900;
+  padding: 5px 9px;
+}
+
+.plan {
+  background: #eef3ff;
+  border-radius: 999px;
+  color: #3157c9;
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 900;
+  padding: 5px 9px;
+}
+
+.plan.pro {
+  background: #ecfdf3;
+  color: var(--green-strong);
+}
+
+.plan.starter {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.status.trial {
+  background: #eef3ff;
+  color: #3157c9;
+}
+
+.status.suspended {
+  background: #fff0ed;
+  color: #b42318;
+}
+
+.legal label {
+  color: var(--muted);
+  display: grid;
+  font-size: 13px;
+  font-weight: 800;
+  gap: 8px;
+}
+
+input,
+textarea {
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  color: var(--text);
+  font: inherit;
+  padding: 12px 14px;
+  resize: vertical;
+}
+
+.legal-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (max-width: 1100px) {
+  .metric-grid,
+  .legal-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .panel-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .metric-grid,
+  .legal-grid {
+    grid-template-columns: 1fr;
+  }
+}

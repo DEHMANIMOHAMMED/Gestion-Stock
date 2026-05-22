@@ -11,8 +11,38 @@ export interface AiForecast {
   horizonDays: number;
   predictedQuantity: number;
   confidenceScore: number;
+  confidenceLevel: 'HIGH' | 'MEDIUM' | 'LOW' | 'INSUFFICIENT_DATA';
+  backtestErrorPercent: number;
+  demandTrendPercent: number;
+  salesVolume30Days: number;
+  demandSignal: string;
   modelName: string;
+  selectedModel: string;
+  modelSelectionReason: string;
+  movingAverageError: number;
+  seasonalError: number;
+  fastapiError: number | null;
   generatedAt: string;
+}
+
+export interface AiForecastBacktestPoint {
+  date: string;
+  actualUnits: number;
+  predictedUnits: number;
+  variancePercent: number;
+}
+
+export interface AiForecastBacktest {
+  productId: number;
+  productName: string;
+  sku: string;
+  horizonDays: number;
+  mae: number;
+  mape: number;
+  reliabilityScore: number;
+  qualityLevel: 'HIGH' | 'MEDIUM' | 'LOW' | 'INSUFFICIENT_DATA';
+  recommendation: string;
+  points: AiForecastBacktestPoint[];
 }
 
 export interface AiStockoutRisk {
@@ -252,6 +282,39 @@ export interface SystemHealth {
   purchaseOrdersCount: number;
 }
 
+export interface ModelRegistryProduct {
+  productId: number;
+  productName: string;
+  sku: string;
+  horizonDays: number;
+  predictedQuantity: number;
+  movingAverageError: number;
+  seasonalError: number;
+  fastapiError: number | null;
+  reason: string;
+}
+
+export interface ModelRegistryModel {
+  modelName: string;
+  usageCount: number;
+  usageSharePercent: number;
+  averageErrorPercent: number;
+  productsToRecalibrate: number;
+  status: 'HEALTHY' | 'WATCH' | 'RECALIBRATE';
+  winningProducts: ModelRegistryProduct[];
+  recalibrationProducts: ModelRegistryProduct[];
+}
+
+export interface ModelRegistry {
+  generatedAt: string;
+  totalForecasts: number;
+  modelsCount: number;
+  averageErrorPercent: number;
+  productsToRecalibrate: number;
+  leaderModel: string;
+  models: ModelRegistryModel[];
+}
+
 export interface ExecutiveTimelineItem {
   type: string;
   severity: 'INFO' | 'WARNING' | 'CRITICAL' | 'SUCCESS';
@@ -308,6 +371,14 @@ export class AiService {
   getForecasts(horizon?: number): Observable<AiForecast[]> {
     const query = horizon ? `?horizon=${horizon}` : '';
     return this.http.get<AiForecast[]>(`${environment.apiUrl}/ai/forecasts${query}`);
+  }
+
+  getForecastBacktests(productId?: number | null, horizon = 30): Observable<AiForecastBacktest[]> {
+    let params = new HttpParams().set('horizon', horizon);
+    if (productId) {
+      params = params.set('productId', productId);
+    }
+    return this.http.get<AiForecastBacktest[]>(`${environment.apiUrl}/ai/forecasts/backtest`, { params });
   }
 
   getStockoutRisks(): Observable<AiStockoutRisk[]> {
@@ -387,6 +458,10 @@ export class AiService {
 
   getSystemHealth(): Observable<SystemHealth> {
     return this.http.get<SystemHealth>(`${environment.apiUrl}/admin/system-health`);
+  }
+
+  getModelRegistry(): Observable<ModelRegistry> {
+    return this.http.get<ModelRegistry>(`${environment.apiUrl}/admin/model-registry`);
   }
 
   getExecutiveTimeline(date?: string): Observable<ExecutiveTimeline> {

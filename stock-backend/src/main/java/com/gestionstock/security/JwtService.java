@@ -14,9 +14,14 @@ import java.util.Date;
 public class JwtService {
 
     private final Key signingKey;
+    private final long expirationMs;
 
-    public JwtService(@Value("${jwt.secret}") String secret) {
+    public JwtService(
+            @Value("${jwt.secret}") String secret,
+            @Value("${jwt.expiration-ms:86400000}") long expirationMs
+    ) {
         this.signingKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+        this.expirationMs = expirationMs;
     }
 
     public String generateToken(User user) {
@@ -27,7 +32,7 @@ public class JwtService {
                 .claim("role", user.getRole().name())
                 .claim("provider", "local")
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + 86400000)) // 24h
+                .setExpiration(new Date(System.currentTimeMillis() + expirationMs))
                 .signWith(signingKey, SignatureAlgorithm.HS256)
                 .compact();
     }
@@ -40,7 +45,7 @@ public class JwtService {
                 .claim("role", user.getRole().name())
                 .claim("provider", "google")
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + 86400000))
+                .setExpiration(new Date(System.currentTimeMillis() + expirationMs))
                 .signWith(signingKey, SignatureAlgorithm.HS256)
                 .compact();
     }

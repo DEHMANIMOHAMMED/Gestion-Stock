@@ -62,6 +62,7 @@ Frontend:
 cd stock-frontend
 npm test -- --watch=false --browsers=ChromeHeadless
 npm run build
+npm run build:prod
 ```
 
 Service IA:
@@ -95,3 +96,54 @@ $env:JWT_SECRET="replace_with_32_chars_minimum_secret"
 - Restreindre CORS.
 - Utiliser HTTPS derriere le reverse proxy.
 - Garder les exports/logs hors repository.
+
+## Paiement et abonnement
+
+Le module abonnement est disponible pour les administrateurs dans le menu `Abonnement`.
+
+En local, si Stripe n'est pas configure, l'ecran affiche clairement que le paiement en ligne est desactive et aucune souscription fictive n'est creee.
+
+Variables a configurer pour activer Stripe:
+
+```powershell
+STRIPE_SECRET_KEY=your_stripe_secret_key
+STRIPE_WEBHOOK_SECRET=your_stripe_webhook_secret
+STRIPE_PRICE_STARTER=price_...
+STRIPE_PRICE_PRO=price_...
+BILLING_SUCCESS_URL=https://app.example.com/billing?payment=success
+BILLING_CANCEL_URL=https://app.example.com/billing?payment=cancel
+```
+
+Webhook Stripe attendu:
+
+```text
+POST /billing/stripe/webhook
+```
+
+## Lancement production Docker
+
+Docker n'est pas necessaire pour le mode dev, mais le projet contient maintenant un compose production.
+
+```powershell
+copy .env.prod.example .env.prod
+# Modifier .env.prod avec les vrais secrets, domaines, cles Google et Stripe.
+docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --build
+```
+
+Services exposes:
+
+- Frontend: `http://localhost`
+- Backend interne: `backend:8080`
+- IA interne: `ai-service:8000`
+- PostgreSQL et Redis internes au compose
+
+Checklist avant mise en ligne:
+
+- renseigner un `JWT_SECRET` long et aleatoire;
+- limiter `CORS_ALLOWED_ORIGINS` au vrai domaine;
+- mettre les vrais identifiants Google OAuth;
+- mettre les vrais identifiants Stripe + webhook;
+- garder `APP_OWNER_ENABLED=false` en production sauf creation controlee;
+- placer l'application derriere HTTPS;
+- verifier les sauvegardes PostgreSQL;
+- activer monitoring/logs hors repository.

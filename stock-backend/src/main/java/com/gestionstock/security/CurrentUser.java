@@ -23,4 +23,9 @@ public final class CurrentUser {
         User user = get();
         return user != null && user.getRole() == Role.ADMIN;
     }
+
+    public static boolean isOwner() {
+        User user = get();
+        return user != null && user.getRole() == Role.OWNER;
+    }
 }

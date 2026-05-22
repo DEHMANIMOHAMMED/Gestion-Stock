@@ -38,8 +38,12 @@ public class SecurityConfig {
                                 "/auth/**",
                                 "/oauth2/**",
                                 "/login/oauth2/**",
-                                "/demo/accounts"
+                                "/actuator/health",
+                                "/actuator/health/**",
+                                "/billing/stripe/webhook"
                         ).permitAll()
+                        .requestMatchers("/demo/accounts").hasRole("OWNER")
+                        .requestMatchers("/owner/**").hasRole("OWNER")
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )

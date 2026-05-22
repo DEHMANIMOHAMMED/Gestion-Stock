@@ -36,6 +36,21 @@ public class AiForecastEntity {
     @Column(name = "model_name", nullable = false, length = 80)
     private String modelName;
 
+    @Column(name = "selected_model", length = 80)
+    private String selectedModel;
+
+    @Column(name = "model_selection_reason")
+    private String modelSelectionReason;
+
+    @Column(name = "moving_average_error", precision = 8, scale = 2)
+    private BigDecimal movingAverageError;
+
+    @Column(name = "seasonal_error", precision = 8, scale = 2)
+    private BigDecimal seasonalError;
+
+    @Column(name = "fastapi_error", precision = 8, scale = 2)
+    private BigDecimal fastapiError;
+
     @Column(name = "generated_at", nullable = false)
     private LocalDateTime generatedAt;
 }

@@ -11,16 +11,19 @@ import com.gestionstock.product.infrastructure.repository.ProductJpaRepository;
 import com.gestionstock.security.JwtService;
 import com.gestionstock.stock.infrastructure.repository.StockMovementJpaRepository;
 import com.gestionstock.stock.infrastructure.repository.StockJpaRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -30,6 +33,9 @@ class ProductControllerIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @Autowired
     private OrganisationRepository organisationRepository;
@@ -117,5 +123,54 @@ class ProductControllerIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)))
                 .andExpect(jsonPath("$[0].sku").value("ORG1-SKU"));
+    }
+
+    @Test
+    void adminCanCreateProductButUserCannot() throws Exception {
+        Organisation organisation = organisationRepository.save(Organisation.builder().name("Role Org").build());
+        User admin = userRepository.save(User.builder()
+                .email("admin@role-org.test")
+                .password("not-used")
+                .organisation(organisation)
+                .role(Role.ADMIN)
+                .build());
+        User user = userRepository.save(User.builder()
+                .email("user@role-org.test")
+                .password("not-used")
+                .organisation(organisation)
+                .role(Role.USER)
+                .build());
+
+        String payload = objectMapper.writeValueAsString(new ProductPayload(
+                "Role Product",
+                "ROLE-001",
+                "Security",
+                3,
+                "pcs"
+        ));
+
+        mockMvc.perform(post("/products")
+                        .header("Authorization", "Bearer " + jwtService.generateToken(user))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(post("/products")
+                        .header("Authorization", "Bearer " + jwtService.generateToken(admin))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.sku").value("ROLE-001"));
+
+        assertThat(productJpaRepository.existsBySkuAndOrganisationId("ROLE-001", organisation.getId())).isTrue();
+    }
+
+    private record ProductPayload(
+            String name,
+            String sku,
+            String category,
+            Integer minStock,
+            String unit
+    ) {
     }
 }

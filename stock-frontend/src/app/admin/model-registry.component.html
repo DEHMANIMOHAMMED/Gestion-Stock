@@ -1,0 +1,99 @@
+<main class="page-shell">
+  <section class="page-hero">
+    <div>
+      <p class="eyebrow">AI governance</p>
+      <h1>Model registry</h1>
+      <p>Suivi des modeles de prevision, erreurs moyennes, produits gagnes et recalibrage.</p>
+    </div>
+    <button type="button" (click)="load()" [disabled]="loading()">
+      {{ loading() ? 'Analyse...' : 'Actualiser' }}
+    </button>
+  </section>
+
+  <p class="error" *ngIf="error()">{{ error() }}</p>
+
+  <ng-container *ngIf="registry() as registry">
+    <section class="metrics-grid">
+      <article>
+        <span>Forecasts</span>
+        <strong>{{ registry.totalForecasts }}</strong>
+        <small>Previsions actives</small>
+      </article>
+      <article>
+        <span>Modeles</span>
+        <strong>{{ registry.modelsCount }}</strong>
+        <small>En competition</small>
+      </article>
+      <article>
+        <span>Erreur moyenne</span>
+        <strong>{{ registry.averageErrorPercent }}%</strong>
+        <small>Tous modeles</small>
+      </article>
+      <article>
+        <span>A recalibrer</span>
+        <strong>{{ registry.productsToRecalibrate }}</strong>
+        <small>{{ registry.leaderModel }}</small>
+      </article>
+    </section>
+
+    <section class="watch-panel" *ngIf="modelsToWatch().length">
+      <header>
+        <h2>Priorites recalibrage</h2>
+        <span>{{ modelsToWatch().length }} modele(s)</span>
+      </header>
+      <div class="watch-list">
+        <article *ngFor="let model of modelsToWatch()">
+          <div>
+            <strong>{{ model.modelName }}</strong>
+            <small>{{ model.productsToRecalibrate }} produit(s), erreur moyenne {{ model.averageErrorPercent }}%</small>
+          </div>
+          <span class="badge" [class.warn]="model.status === 'WATCH'" [class.down]="model.status === 'RECALIBRATE'">
+            {{ statusLabel(model.status) }}
+          </span>
+        </article>
+      </div>
+    </section>
+
+    <section class="model-grid">
+      <article class="model-card" *ngFor="let model of registry.models">
+        <header>
+          <div>
+            <h2>{{ model.modelName }}</h2>
+            <small>{{ model.usageCount }} forecast(s), {{ model.usageSharePercent }}% usage</small>
+          </div>
+          <span class="badge" [class.up]="model.status === 'HEALTHY'" [class.warn]="model.status === 'WATCH'" [class.down]="model.status === 'RECALIBRATE'">
+            {{ statusLabel(model.status) }}
+          </span>
+        </header>
+
+        <div class="model-metrics">
+          <span>Erreur {{ model.averageErrorPercent }}%</span>
+          <span>{{ model.productsToRecalibrate }} recalibrage</span>
+        </div>
+
+        <div class="product-section">
+          <h3>Produits ou le modele gagne</h3>
+          <div class="product-row" *ngFor="let product of model.winningProducts">
+            <div>
+              <strong>{{ product.productName }}</strong>
+              <small>{{ product.sku }} - H{{ product.horizonDays }} - prevu {{ product.predictedQuantity }}</small>
+            </div>
+            <span>MA {{ product.movingAverageError }}% / S {{ product.seasonalError }}%</span>
+          </div>
+          <p class="empty" *ngIf="!model.winningProducts.length">Aucun produit pour ce modele.</p>
+        </div>
+
+        <div class="product-section danger-zone" *ngIf="model.recalibrationProducts.length">
+          <h3>Produits a recalibrer</h3>
+          <div class="product-row" *ngFor="let product of model.recalibrationProducts">
+            <div>
+              <strong>{{ product.productName }}</strong>
+              <small>{{ product.reason }}</small>
+            </div>
+            <span>{{ product.movingAverageError }}% / {{ product.seasonalError }}%</span>
+          </div>
+        </div>
+      </article>
+    </section>
+  </ng-container>
+</main>

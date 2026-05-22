@@ -555,7 +555,7 @@ class PurchaseOrderControllerIntegrationTest {
     }
 
     @Test
-    void purchaseOrderApprovalRulesDependOnRoleAndAmountThreshold() throws Exception {
+    void usersCannotManagePurchaseOrders() throws Exception {
         Organisation organisation = organisationRepository.save(Organisation.builder().name("Approval Org").build());
         User admin = userRepository.save(User.builder()
                 .email("admin@approval.test")
@@ -618,10 +618,10 @@ class PurchaseOrderControllerIntegrationTest {
                                   ]
                                 }
                                 """.formatted(supplier.getId(), product.getId())))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.detail").value("Purchase order requires admin approval above 1000"));
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.detail").value("ADMIN role required"));
 
-        String draftResponse = mockMvc.perform(post("/purchase-orders/from-recommendation")
+        mockMvc.perform(post("/purchase-orders/from-recommendation")
                         .header("Authorization", "Bearer " + userToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -630,37 +630,31 @@ class PurchaseOrderControllerIntegrationTest {
                                   "supplierId": %d
                                 }
                                 """.formatted(recommendation.getId(), supplier.getId())))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.detail").value("ADMIN role required"));
+
+        String orderResponse = mockMvc.perform(post("/purchase-orders")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "supplierId": %d,
+                                  "lines": [
+                                    { "productId": %d, "quantity": 4, "unitCost": 75.00 }
+                                  ]
+                                }
+                                """.formatted(supplier.getId(), product.getId())))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("DRAFT"))
+                .andExpect(jsonPath("$.status").value("ORDERED"))
                 .andReturn()
                 .getResponse()
                 .getContentAsString();
-        Long orderId = objectMapper.readTree(draftResponse).get("id").asLong();
-
-        mockMvc.perform(post("/purchase-orders/{id}/approve", orderId)
-                        .header("Authorization", "Bearer " + userToken))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.detail").value("Only admins can approve purchase orders"));
-
-        mockMvc.perform(post("/purchase-orders/{id}/confirm", orderId)
-                        .header("Authorization", "Bearer " + userToken))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.detail").value("Purchase order requires admin approval above 1000"));
-
-        mockMvc.perform(post("/purchase-orders/{id}/approve", orderId)
-                        .header("Authorization", "Bearer " + adminToken))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("APPROVED"));
-
-        mockMvc.perform(post("/purchase-orders/{id}/confirm", orderId)
-                        .header("Authorization", "Bearer " + userToken))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("ORDERED"));
+        Long orderId = objectMapper.readTree(orderResponse).get("id").asLong();
 
         mockMvc.perform(post("/purchase-orders/{id}/cancel", orderId)
                         .header("Authorization", "Bearer " + userToken))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.detail").value("Only admins can cancel ordered purchase orders"));
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.detail").value("ADMIN role required"));
 
         mockMvc.perform(post("/purchase-orders/{id}/cancel", orderId)
                         .header("Authorization", "Bearer " + adminToken))
@@ -670,11 +664,9 @@ class PurchaseOrderControllerIntegrationTest {
         mockMvc.perform(get("/purchase-orders/{id}/audit", orderId)
                         .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(4)))
-                .andExpect(jsonPath("$[0].actorRole").value("USER"))
-                .andExpect(jsonPath("$[1].actorRole").value("ADMIN"))
-                .andExpect(jsonPath("$[2].actorRole").value("USER"))
-                .andExpect(jsonPath("$[3].actorRole").value("ADMIN"));
+                .andExpect(jsonPath("$", hasSize(2)))
+                .andExpect(jsonPath("$[0].actorRole").value("ADMIN"))
+                .andExpect(jsonPath("$[1].actorRole").value("ADMIN"));
     }
 
     @Test
@@ -739,8 +731,8 @@ class PurchaseOrderControllerIntegrationTest {
                         .header("Authorization", "Bearer " + userToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"approvalThreshold\":2000}"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.detail").value("Only admins can update approval settings"));
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.detail").value("ADMIN role required"));
 
         mockMvc.perform(put("/purchase-orders/approval-settings")
                         .header("Authorization", "Bearer " + adminToken)
@@ -751,7 +743,7 @@ class PurchaseOrderControllerIntegrationTest {
                 .andExpect(jsonPath("$.defaultValue").value(false));
 
         String createResponse = mockMvc.perform(post("/purchase-orders")
-                        .header("Authorization", "Bearer " + userToken)
+                        .header("Authorization", "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -779,7 +771,7 @@ class PurchaseOrderControllerIntegrationTest {
                 .generatedAt(LocalDateTime.now())
                 .build());
         String draftResponse = mockMvc.perform(post("/purchase-orders/from-recommendation")
-                        .header("Authorization", "Bearer " + userToken)
+                        .header("Authorization", "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -796,8 +788,8 @@ class PurchaseOrderControllerIntegrationTest {
 
         mockMvc.perform(get("/purchase-orders/approval-center")
                         .header("Authorization", "Bearer " + userToken))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.detail").value("Only admins can access the approval center"));
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.detail").value("ADMIN role required"));
 
         mockMvc.perform(get("/purchase-orders/approval-center")
                         .header("Authorization", "Bearer " + adminToken))

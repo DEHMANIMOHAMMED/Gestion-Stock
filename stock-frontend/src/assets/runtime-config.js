@@ -1,0 +1,3 @@
+window.stockPilotConfig = {
+  googleClientId: ''
+};

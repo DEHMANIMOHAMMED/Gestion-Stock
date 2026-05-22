@@ -1,4 +1,7 @@
 .products-page {
+  display: grid;
+  gap: 18px;
+
   h2 {
     font-size: 34px;
     margin: 0;
@@ -125,7 +128,7 @@
   border: 1px solid var(--line);
   border-radius: 16px;
   box-shadow: var(--shadow);
-  margin-top: 26px;
+  margin-top: 8px;
   overflow: hidden;
 
   th,

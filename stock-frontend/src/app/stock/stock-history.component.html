@@ -28,8 +28,8 @@
       </select>
     </label>
 
-    <button (click)="exportCsv()">Exporter CSV</button>
-    <button (click)="exportPdf()">Exporter PDF</button>
+    <button *ngIf="auth.hasRole('ADMIN')" (click)="exportCsv()">Exporter CSV</button>
+    <button *ngIf="auth.hasRole('ADMIN')" (click)="exportPdf()">Exporter PDF</button>
   </div>
 
   <table class="history-table" *ngIf="history().length > 0">

@@ -5,6 +5,7 @@ client_secret_*.json
 .env
 .env.*
 !.env.example
+!.env.prod.example
 
 # Logs
 *.log

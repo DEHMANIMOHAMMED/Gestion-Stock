@@ -24,7 +24,12 @@ export class OnboardingComponent implements OnInit {
     address: ['', [Validators.maxLength(220)]],
     city: ['', [Validators.required, Validators.maxLength(120)]],
     country: ['', [Validators.required, Validators.maxLength(120)]],
-    currency: ['EUR', [Validators.required, Validators.maxLength(10)]]
+    currency: ['EUR', [Validators.required, Validators.maxLength(10)]],
+    logoUrl: ['', [Validators.maxLength(500)]],
+    taxId: ['', [Validators.maxLength(80)]],
+    website: ['', [Validators.maxLength(220)]],
+    stockAlertEmail: ['', [Validators.email, Validators.maxLength(180)]],
+    defaultLeadTimeDays: [7, [Validators.required, Validators.min(0)]]
   });
 
   message = '';
@@ -42,7 +47,12 @@ export class OnboardingComponent implements OnInit {
           address: profile.address || '',
           city: profile.city || '',
           country: profile.country || '',
-          currency: profile.currency || 'EUR'
+          currency: profile.currency || 'EUR',
+          logoUrl: profile.logoUrl || '',
+          taxId: profile.taxId || '',
+          website: profile.website || '',
+          stockAlertEmail: profile.stockAlertEmail || '',
+          defaultLeadTimeDays: profile.defaultLeadTimeDays ?? 7
         });
         this.loading = false;
       },
@@ -70,7 +80,12 @@ export class OnboardingComponent implements OnInit {
       address: value.address || null,
       city: value.city!,
       country: value.country!,
-      currency: value.currency!
+      currency: value.currency!,
+      logoUrl: value.logoUrl || null,
+      taxId: value.taxId || null,
+      website: value.website || null,
+      stockAlertEmail: value.stockAlertEmail || null,
+      defaultLeadTimeDays: Number(value.defaultLeadTimeDays ?? 7)
     }).subscribe({
       next: () => {
         this.saving = false;

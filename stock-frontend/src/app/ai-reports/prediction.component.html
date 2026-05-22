@@ -24,6 +24,111 @@
       <span>Quantite recommandee</span>
       <strong>{{ totalRecommendedOrder() }}</strong>
     </article>
+    <article class="ai-card">
+      <span>Confiance faible</span>
+      <strong>{{ lowConfidenceCount() }}</strong>
+    </article>
+  </section>
+
+  <section class="ai-panel forecast-panel" *ngIf="!loading() && forecasts().length">
+    <div class="panel-title">
+      <h2>Qualite des previsions</h2>
+      <small>Basee sur ventes 30/60 jours, backtesting simple et volume de demande.</small>
+    </div>
+    <div class="forecast-grid">
+      <article *ngFor="let forecast of forecasts()">
+        <div>
+          <strong>{{ forecast.productName }}</strong>
+          <small>{{ forecast.sku }} · {{ forecast.demandSignal }}</small>
+        </div>
+        <span
+          class="status-pill"
+          [class.warning]="forecast.confidenceLevel === 'MEDIUM' || forecast.confidenceLevel === 'INSUFFICIENT_DATA'"
+          [class.danger]="forecast.confidenceLevel === 'LOW'"
+        >
+          {{ confidenceLabel(forecast) }} · {{ forecast.confidenceScore }}%
+        </span>
+        <div class="model-winner">
+          <span>Modele gagnant</span>
+          <strong>{{ forecast.selectedModel }}</strong>
+          <small>{{ forecast.modelSelectionReason }}</small>
+        </div>
+        <dl>
+          <div>
+            <dt>Ventes 30j</dt>
+            <dd>{{ forecast.salesVolume30Days }}</dd>
+          </div>
+          <div>
+            <dt>Tendance</dt>
+            <dd>{{ forecast.demandTrendPercent }}%</dd>
+          </div>
+          <div>
+            <dt>Erreur backtest</dt>
+            <dd>{{ forecast.backtestErrorPercent }}%</dd>
+          </div>
+          <div>
+            <dt>MA</dt>
+            <dd>{{ forecast.movingAverageError }}%</dd>
+          </div>
+          <div>
+            <dt>Saisonnalite</dt>
+            <dd>{{ forecast.seasonalError }}%</dd>
+          </div>
+          <div>
+            <dt>FastAPI</dt>
+            <dd>{{ forecast.fastapiError ?? '-' }}</dd>
+          </div>
+        </dl>
+      </article>
+    </div>
+  </section>
+
+  <section class="ai-panel backtest-panel" *ngIf="!loading() && selectedBacktest() as backtest">
+    <div class="panel-title">
+      <div>
+        <h2>Backtesting reel vs prevision</h2>
+        <small>Courbe 30 jours calculee depuis les ventes reelles et la derniere prevision IA.</small>
+      </div>
+      <label class="supplier-picker">
+        Produit
+        <select [ngModel]="selectedBacktestProductId()" (ngModelChange)="selectedBacktestProductId.set($event)">
+          <option *ngFor="let item of backtests()" [ngValue]="item.productId">{{ item.productName }} - {{ item.sku }}</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="backtest-summary">
+      <article>
+        <span>Fiabilite</span>
+        <strong>{{ backtest.reliabilityScore }}%</strong>
+        <small>{{ qualityLabel(backtest.qualityLevel) }}</small>
+      </article>
+      <article>
+        <span>MAE</span>
+        <strong>{{ backtest.mae }}</strong>
+        <small>unites / jour</small>
+      </article>
+      <article>
+        <span>MAPE</span>
+        <strong>{{ backtest.mape }}%</strong>
+        <small>erreur moyenne</small>
+      </article>
+      <article>
+        <span>Action</span>
+        <p>{{ backtest.recommendation }}</p>
+      </article>
+    </div>
+
+    <div class="backtest-chart">
+      <div class="backtest-day" *ngFor="let point of backtest.points">
+        <span class="actual" [style.height.px]="backtestBarHeight(point, 'actualUnits')" [title]="'Reel: ' + point.actualUnits"></span>
+        <span class="predicted" [style.height.px]="backtestBarHeight(point, 'predictedUnits')" [title]="'Prevu: ' + point.predictedUnits"></span>
+      </div>
+    </div>
+    <div class="chart-legend">
+      <span><i class="actual-dot"></i>Reel</span>
+      <span><i class="predicted-dot"></i>Prevu</span>
+    </div>
   </section>
 
   <section class="ai-panel" *ngIf="!loading()">
@@ -47,6 +152,7 @@
           <th>Produit</th>
           <th>SKU</th>
           <th>Prevision 30j</th>
+          <th>Confiance</th>
           <th>Date rupture</th>
           <th>Commander</th>
           <th>Fournisseur IA</th>
@@ -60,6 +166,18 @@
           <td>{{ row.productName }}</td>
           <td>{{ row.sku }}</td>
           <td>{{ forecastFor(row.productId)?.predictedQuantity ?? 0 }}</td>
+          <td>
+            <span
+              class="status-pill"
+              [class.warning]="forecastFor(row.productId)?.confidenceLevel === 'MEDIUM' || forecastFor(row.productId)?.confidenceLevel === 'INSUFFICIENT_DATA'"
+              [class.danger]="forecastFor(row.productId)?.confidenceLevel === 'LOW'"
+            >
+              {{ confidenceLabel(forecastFor(row.productId)) }}
+            </span>
+            <small class="supplier-hint" *ngIf="forecastFor(row.productId) as forecast">
+              {{ forecast.confidenceScore }}% · {{ forecast.demandSignal }}
+            </small>
+          </td>
           <td>{{ row.estimatedStockoutDate || 'Non estimee' }}</td>
           <td>{{ recommendationFor(row.productId)?.recommendedQuantity ?? 0 }}</td>
           <td>

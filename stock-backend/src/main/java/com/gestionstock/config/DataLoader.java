@@ -2,6 +2,8 @@ package com.gestionstock.config;
 
 import com.gestionstock.ai.infrastructure.entity.*;
 import com.gestionstock.ai.infrastructure.repository.*;
+import com.gestionstock.billing.infrastructure.entity.BillingSubscriptionEntity;
+import com.gestionstock.billing.infrastructure.repository.BillingSubscriptionRepository;
 import com.gestionstock.iam.infrastructure.entity.Organisation;
 import com.gestionstock.iam.infrastructure.entity.Role;
 import com.gestionstock.iam.infrastructure.entity.User;
@@ -18,12 +20,18 @@ import com.gestionstock.procurement.infrastructure.repository.PurchaseOrderJpaRe
 import com.gestionstock.procurement.infrastructure.repository.SupplierJpaRepository;
 import com.gestionstock.product.domain.model.Product;
 import com.gestionstock.product.domain.repository.ProductRepository;
+import com.gestionstock.sales.domain.model.Sale;
+import com.gestionstock.sales.domain.model.SaleLine;
+import com.gestionstock.sales.domain.model.SaleStatus;
+import com.gestionstock.sales.domain.model.SalesChannel;
+import com.gestionstock.sales.domain.repository.SalesRepository;
 import com.gestionstock.stock.domain.model.MovementType;
 import com.gestionstock.stock.domain.model.Stock;
 import com.gestionstock.stock.domain.model.StockMovement;
 import com.gestionstock.stock.domain.repository.StockMovementRepository;
 import com.gestionstock.stock.domain.repository.StockRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -49,17 +57,54 @@ public class DataLoader implements CommandLineRunner {
     private final SupplierJpaRepository supplierRepository;
     private final ProductSupplierJpaRepository productSupplierRepository;
     private final PurchaseOrderJpaRepository purchaseOrderRepository;
+    private final SalesRepository salesRepository;
     private final AiForecastRepository forecastRepository;
     private final AiStockoutRiskRepository stockoutRiskRepository;
     private final AiReorderRecommendationRepository reorderRepository;
     private final AiAnomalyRepository anomalyRepository;
     private final AiInsightRepository insightRepository;
+    private final BillingSubscriptionRepository billingSubscriptionRepository;
     private final AdminNotificationService notificationService;
     private final PasswordEncoder passwordEncoder;
 
+    @Value("${stockpilot.owner.enabled:false}")
+    private boolean ownerEnabled;
+
+    @Value("${stockpilot.owner.email:owner@stockpilot.local}")
+    private String ownerEmail;
+
+    @Value("${stockpilot.owner.password:}")
+    private String ownerPassword;
+
     @Override
     public void run(String... args) {
+        seedOwner();
         demoScenarios().forEach(this::seedScenario);
+    }
+
+    private void seedOwner() {
+        if (!ownerEnabled || ownerPassword == null || ownerPassword.isBlank()) {
+            return;
+        }
+        String normalizedEmail = ownerEmail.trim().toLowerCase();
+        Organisation platform = organisationRepository.findByName("StockPilot Platform")
+                .orElseGet(() -> organisationRepository.save(Organisation.builder()
+                        .name("StockPilot Platform")
+                        .industry("SaaS")
+                        .sizeRange("1-10")
+                        .city("Paris")
+                        .country("France")
+                        .currency("EUR")
+                        .status("ACTIVE")
+                        .onboardingCompleted(true)
+                        .build()));
+        userRepository.findByEmail(normalizedEmail)
+                .orElseGet(() -> userRepository.save(User.builder()
+                        .email(normalizedEmail)
+                        .password(passwordEncoder.encode(ownerPassword))
+                        .organisation(platform)
+                        .role(Role.OWNER)
+                        .build()));
     }
 
     private void seedScenario(DemoScenario scenario) {
@@ -76,6 +121,7 @@ public class DataLoader implements CommandLineRunner {
                         .onboardingCompleted(true)
                         .build()));
         enrichOrganisation(organisation, scenario);
+        seedSubscription(organisation, scenario.planCode());
 
         User admin = seedUser(scenario.adminEmail(), Role.ADMIN, organisation);
         seedUser(scenario.userEmail(), Role.USER, organisation);
@@ -86,6 +132,7 @@ public class DataLoader implements CommandLineRunner {
         List<SupplierEntity> suppliers = seedSuppliers(organisation.getId(), scenario);
         seedProductSuppliers(organisation.getId(), products, suppliers);
         seedMovementHistory(organisation.getId(), products);
+        seedSales(organisation.getId(), products);
         seedAiData(organisation.getId(), products);
         seedPurchaseOrders(organisation.getId(), products, suppliers);
         seedNotifications(organisation.getId(), products, suppliers);
@@ -110,6 +157,18 @@ public class DataLoader implements CommandLineRunner {
         if (changed) {
             organisationRepository.save(organisation);
         }
+    }
+
+    private void seedSubscription(Organisation organisation, String planCode) {
+        billingSubscriptionRepository.findByOrganisationId(organisation.getId())
+                .orElseGet(() -> {
+                    BillingSubscriptionEntity subscription = new BillingSubscriptionEntity();
+                    subscription.setOrganisation(organisation);
+                    subscription.setPlanCode(planCode);
+                    subscription.setStatus("TRIALING");
+                    subscription.setTrialEndsAt(LocalDateTime.now().plusDays(14));
+                    return billingSubscriptionRepository.save(subscription);
+                });
     }
 
     private User seedUser(String email, Role role, Organisation organisation) {
@@ -223,6 +282,48 @@ public class DataLoader implements CommandLineRunner {
                         .build());
             }
         }
+    }
+
+    private void seedSales(Long organisationId, List<Product> products) {
+        if (!salesRepository.findBetween(organisationId, LocalDateTime.now().minusDays(90), LocalDateTime.now()).isEmpty()) {
+            return;
+        }
+        LocalDateTime now = LocalDateTime.now();
+        for (int day = 1; day <= 45; day += 3) {
+            Product first = products.get(day % products.size());
+            Product second = products.get((day + 3) % products.size());
+            SalesChannel channel = switch (day % 4) {
+                case 0 -> SalesChannel.WEB;
+                case 1 -> SalesChannel.STORE;
+                case 2 -> SalesChannel.PHONE;
+                default -> SalesChannel.B2B;
+            };
+            LocalDateTime soldAt = now.minusDays(day).withHour(10 + day % 8).withMinute(15);
+            SaleLine firstLine = demoSaleLine(organisationId, first, 2 + day % 4, BigDecimal.valueOf(18 + day + first.minStock()));
+            SaleLine secondLine = demoSaleLine(organisationId, second, 1 + day % 3, BigDecimal.valueOf(12 + day + second.minStock()));
+            salesRepository.save(Sale.builder()
+                    .organisationId(organisationId)
+                    .reference("DEMO-" + organisationId + "-" + day)
+                    .customerName(day % 2 == 0 ? "Client comptoir" : "Compte pro " + day)
+                    .channel(channel)
+                    .status(SaleStatus.COMPLETED)
+                    .totalAmount(firstLine.lineTotal().add(secondLine.lineTotal()))
+                    .soldAt(soldAt)
+                    .createdAt(soldAt)
+                    .lines(List.of(firstLine, secondLine))
+                    .build());
+        }
+    }
+
+    private SaleLine demoSaleLine(Long organisationId, Product product, int quantity, BigDecimal unitPrice) {
+        BigDecimal price = unitPrice.setScale(2);
+        return SaleLine.builder()
+                .organisationId(organisationId)
+                .productId(product.id())
+                .quantity(quantity)
+                .unitPrice(price)
+                .lineTotal(price.multiply(BigDecimal.valueOf(quantity)).setScale(2))
+                .build();
     }
 
     private void seedAiData(Long organisationId, List<Product> products) {
@@ -386,6 +487,7 @@ public class DataLoader implements CommandLineRunner {
                         "Paris",
                         "France",
                         "EUR",
+                        "PRO",
                         "admin@demo-stock.local",
                         "user@demo-stock.local",
                         List.of(
@@ -415,6 +517,7 @@ public class DataLoader implements CommandLineRunner {
                         "Lyon",
                         "France",
                         "EUR",
+                        "STARTER",
                         "admin@garage-atlas.local",
                         "mecano@garage-atlas.local",
                         List.of(
@@ -444,6 +547,7 @@ public class DataLoader implements CommandLineRunner {
                         "Nantes",
                         "France",
                         "EUR",
+                        "PRO",
                         "admin@pharma-nova.local",
                         "preparateur@pharma-nova.local",
                         List.of(
@@ -473,6 +577,7 @@ public class DataLoader implements CommandLineRunner {
                         "Bordeaux",
                         "France",
                         "EUR",
+                        "STARTER",
                         "admin@boutique-lumiere.local",
                         "vendeur@boutique-lumiere.local",
                         List.of(
@@ -502,6 +607,7 @@ public class DataLoader implements CommandLineRunner {
                         "Grenoble",
                         "France",
                         "EUR",
+                        "PRO",
                         "admin@atelier-meca.local",
                         "atelier@atelier-meca.local",
                         List.of(
@@ -534,6 +640,7 @@ public class DataLoader implements CommandLineRunner {
             String city,
             String country,
             String currency,
+            String planCode,
             String adminEmail,
             String userEmail,
             List<DemoSupplier> suppliers,

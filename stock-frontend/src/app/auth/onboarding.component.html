@@ -68,6 +68,31 @@
         </select>
       </label>
 
+      <label>
+        SIRET / TVA
+        <input formControlName="taxId" />
+      </label>
+
+      <label>
+        Site web
+        <input formControlName="website" />
+      </label>
+
+      <label class="wide">
+        Logo URL
+        <input formControlName="logoUrl" />
+      </label>
+
+      <label>
+        Email alertes stock
+        <input formControlName="stockAlertEmail" />
+      </label>
+
+      <label>
+        Lead time defaut
+        <input type="number" min="0" formControlName="defaultLeadTimeDays" />
+      </label>
+
       <button type="submit" [disabled]="form.invalid || saving">
         {{ saving ? 'Enregistrement...' : 'Terminer la configuration' }}
       </button>

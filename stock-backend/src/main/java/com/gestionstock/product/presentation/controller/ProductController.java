@@ -4,6 +4,7 @@ import com.gestionstock.product.application.dto.*;
 import com.gestionstock.product.application.mapper.ProductMapper;
 import com.gestionstock.product.domain.service.ProductImportService;
 import com.gestionstock.product.domain.service.ProductService;
+import com.gestionstock.security.PermissionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -20,9 +21,11 @@ public class ProductController {
     private final ProductService service;
     private final ProductImportService importService;
     private final ProductMapper mapper;
+    private final PermissionService permissionService;
 
     @PostMapping
     public ResponseEntity<ProductResponse> create(@Valid @RequestBody ProductRequest request) {
+        permissionService.requireAdmin();
         var domain = mapper.toDomain(request);
         var saved = service.create(domain);
         return ResponseEntity.ok(mapper.toResponse(saved));
@@ -38,6 +41,7 @@ public class ProductController {
     public ResponseEntity<ProductResponse> update(
             @Valid @RequestBody ProductUpdateRequest request) {
 
+        permissionService.requireAdmin();
         var domain = mapper.toDomain(request);
         var updated = service.update(domain);
 
@@ -46,12 +50,14 @@ public class ProductController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
+        permissionService.requireAdmin();
         service.delete(id);
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/import")
     public ResponseEntity<ProductImportResponse> importProducts(@RequestParam("file") MultipartFile file) {
+        permissionService.requireAdmin();
         return ResponseEntity.ok(importService.importProducts(file));
     }
 

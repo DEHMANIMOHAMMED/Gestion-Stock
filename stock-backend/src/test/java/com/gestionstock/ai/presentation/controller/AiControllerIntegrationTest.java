@@ -9,6 +9,12 @@ import com.gestionstock.iam.infrastructure.repository.OrganisationRepository;
 import com.gestionstock.iam.infrastructure.repository.UserRepository;
 import com.gestionstock.product.infrastructure.entity.ProductEntity;
 import com.gestionstock.product.infrastructure.repository.ProductJpaRepository;
+import com.gestionstock.sales.domain.model.SaleStatus;
+import com.gestionstock.sales.domain.model.SalesChannel;
+import com.gestionstock.sales.infrastructure.entity.SaleEntity;
+import com.gestionstock.sales.infrastructure.entity.SaleLineEntity;
+import com.gestionstock.sales.infrastructure.repository.SaleJpaRepository;
+import com.gestionstock.sales.infrastructure.repository.SaleLineJpaRepository;
 import com.gestionstock.security.JwtService;
 import com.gestionstock.stock.domain.model.MovementType;
 import com.gestionstock.stock.infrastructure.entity.StockEntity;
@@ -23,6 +29,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDateTime;
+import java.math.BigDecimal;
 
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasSize;
@@ -81,12 +88,20 @@ class AiControllerIntegrationTest {
     private AiCopilotConversationRepository copilotConversationRepository;
 
     @Autowired
+    private SaleJpaRepository saleJpaRepository;
+
+    @Autowired
+    private SaleLineJpaRepository saleLineJpaRepository;
+
+    @Autowired
     private JwtService jwtService;
 
     @BeforeEach
     void setUp() {
         copilotMessageRepository.deleteAll();
         copilotConversationRepository.deleteAll();
+        saleLineJpaRepository.deleteAll();
+        saleJpaRepository.deleteAll();
         runRepository.deleteAll();
         auditLogRepository.deleteAll();
         anomalyRepository.deleteAll();
@@ -161,6 +176,58 @@ class AiControllerIntegrationTest {
                 .andExpect(jsonPath("$.stockoutRisks[0].productName").value("Scanner"))
                 .andExpect(jsonPath("$.reorderRecommendations", hasSize(greaterThan(0))))
                 .andExpect(jsonPath("$.insights", hasSize(1)));
+    }
+
+    @Test
+    void aiDashboardExposesForecastQualityFromSalesDemand() throws Exception {
+        Organisation organisation = organisationRepository.save(Organisation.builder().name("Forecast Quality Org").build());
+        User user = userRepository.save(User.builder()
+                .email("admin@forecast-quality.test")
+                .password("not-used")
+                .organisation(organisation)
+                .role(Role.ADMIN)
+                .build());
+        ProductEntity product = productJpaRepository.save(ProductEntity.builder()
+                .organisationId(organisation.getId())
+                .name("Produit tendance")
+                .sku("FQ-1")
+                .category("Retail")
+                .minStock(5)
+                .unit("pcs")
+                .build());
+        stockJpaRepository.save(StockEntity.builder()
+                .organisationId(organisation.getId())
+                .productId(product.getId())
+                .quantity(80)
+                .build());
+        saveSale(organisation.getId(), product.getId(), "FQ-OLD", 5, LocalDateTime.now().minusDays(40));
+        saveSale(organisation.getId(), product.getId(), "FQ-NEW-1", 8, LocalDateTime.now().minusDays(8));
+        saveSale(organisation.getId(), product.getId(), "FQ-NEW-2", 9, LocalDateTime.now().minusDays(2));
+
+        mockMvc.perform(get("/ai/dashboard")
+                        .header("Authorization", "Bearer " + jwtService.generateToken(user)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.forecasts[0].confidenceLevel").exists())
+                .andExpect(jsonPath("$.forecasts[0].backtestErrorPercent").exists())
+                .andExpect(jsonPath("$.forecasts[0].demandTrendPercent").exists())
+                .andExpect(jsonPath("$.forecasts[0].salesVolume30Days").value(17))
+                .andExpect(jsonPath("$.forecasts[0].demandSignal").value("Demande en hausse"))
+                .andExpect(jsonPath("$.forecasts[0].selectedModel").exists())
+                .andExpect(jsonPath("$.forecasts[0].modelSelectionReason").exists())
+                .andExpect(jsonPath("$.forecasts[0].movingAverageError").exists())
+                .andExpect(jsonPath("$.forecasts[0].seasonalError").exists());
+
+        mockMvc.perform(get("/ai/forecasts/backtest")
+                        .param("productId", product.getId().toString())
+                        .param("horizon", "30")
+                        .header("Authorization", "Bearer " + jwtService.generateToken(user)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].productId").value(product.getId()))
+                .andExpect(jsonPath("$[0].points", hasSize(30)))
+                .andExpect(jsonPath("$[0].mae").exists())
+                .andExpect(jsonPath("$[0].mape").exists())
+                .andExpect(jsonPath("$[0].reliabilityScore").exists())
+                .andExpect(jsonPath("$[0].qualityLevel").exists());
     }
 
     @Test
@@ -292,5 +359,26 @@ class AiControllerIntegrationTest {
             }
             Thread.sleep(100);
         }
+    }
+
+    private void saveSale(Long organisationId, Long productId, String reference, int quantity, LocalDateTime soldAt) {
+        SaleEntity sale = saleJpaRepository.save(SaleEntity.builder()
+                .organisationId(organisationId)
+                .reference(reference)
+                .customerName("Client")
+                .channel(SalesChannel.STORE)
+                .status(SaleStatus.COMPLETED)
+                .totalAmount(BigDecimal.valueOf(quantity * 10L))
+                .soldAt(soldAt)
+                .createdAt(soldAt)
+                .build());
+        saleLineJpaRepository.save(SaleLineEntity.builder()
+                .saleId(sale.getId())
+                .organisationId(organisationId)
+                .productId(productId)
+                .quantity(quantity)
+                .unitPrice(BigDecimal.TEN)
+                .lineTotal(BigDecimal.valueOf(quantity * 10L))
+                .build());
     }
 }

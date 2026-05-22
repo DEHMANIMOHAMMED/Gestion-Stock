@@ -2,6 +2,7 @@ package com.gestionstock.admin.presentation.controller;
 
 import com.gestionstock.admin.application.dto.ExecutiveTimelineResponse;
 import com.gestionstock.admin.application.service.ExecutiveTimelineService;
+import com.gestionstock.security.PlanAccessService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
@@ -19,11 +20,13 @@ import java.time.LocalDate;
 public class ExecutiveTimelineController {
 
     private final ExecutiveTimelineService service;
+    private final PlanAccessService planAccessService;
 
     @GetMapping
     public ResponseEntity<ExecutiveTimelineResponse> report(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
     ) {
+        planAccessService.requireProPlan();
         return ResponseEntity.ok(service.report(date));
     }
 
@@ -31,6 +34,7 @@ public class ExecutiveTimelineController {
     public ResponseEntity<byte[]> exportCsv(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
     ) {
+        planAccessService.requireProPlan();
         LocalDate reportDate = date == null ? LocalDate.now() : date;
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=daily-report-" + reportDate + ".csv")
@@ -41,6 +45,7 @@ public class ExecutiveTimelineController {
     public ResponseEntity<byte[]> exportPdf(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
     ) {
+        planAccessService.requireProPlan();
         LocalDate reportDate = date == null ? LocalDate.now() : date;
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=daily-report-" + reportDate + ".pdf")

@@ -1,0 +1,13 @@
+sku,name,category,minStock,unit,initialStock
+DEMO-USB-C-001,Cable USB-C 1m,Accessoires,20,pcs,85
+DEMO-CHG-002,Chargeur mural 30W,Accessoires,15,pcs,42
+DEMO-LAP-STAND-003,Support ordinateur portable,Bureau,8,pcs,24
+DEMO-NOTE-004,Carnet A5,Papeterie,25,pcs,110
+DEMO-PEN-005,Stylo bille noir,Papeterie,50,pcs,250
+DEMO-LABEL-006,Etiquettes expedition,Logistique,40,roll,92
+DEMO-BOX-S-007,Carton expedition petit,Logistique,60,pcs,180
+DEMO-BOX-M-008,Carton expedition moyen,Logistique,50,pcs,145
+DEMO-TAPE-009,Ruban adhesif emballage,Logistique,30,roll,76
+DEMO-SCAN-010,Scanner code-barres,Equipement,5,pcs,12
+DEMO-BAT-011,Batterie scanner,Equipement,6,pcs,18
+DEMO-CAM-012,Camera stockroom,Securite,4,pcs,9

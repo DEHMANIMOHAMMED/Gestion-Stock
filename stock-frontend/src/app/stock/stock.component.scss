@@ -1,8 +1,6 @@
 .stock-page {
-  h2 {
-    font-size: 34px;
-    margin: 0 0 24px;
-  }
+  display: grid;
+  gap: 20px;
 }
 
 .stock-table {
@@ -39,6 +37,43 @@
     cursor: pointer;
     font-weight: 800;
     padding: 8px 12px;
+  }
+}
+
+.stock-pill {
+  background: #eaf7ed;
+  border-radius: 999px;
+  color: var(--green-strong);
+  display: inline-flex;
+  font-weight: 900;
+  padding: 7px 10px;
+}
+
+.stock-pill.low {
+  background: #fff7e6;
+  color: #b26a00;
+}
+
+.stock-pill.empty {
+  background: #fff0ed;
+  color: #b42318;
+}
+
+.quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+
+  button.out {
+    background: #fff0ed;
+    border-color: #ffd5d5;
+    color: #b42318;
+  }
+
+  button.adjust {
+    background: #eef3ff;
+    border-color: #d4defd;
+    color: #3157c9;
   }
 }
 

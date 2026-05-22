@@ -10,6 +10,11 @@ public record OrganisationProfileResponse(
         String city,
         String country,
         String currency,
+        String logoUrl,
+        String taxId,
+        String website,
+        String stockAlertEmail,
+        Integer defaultLeadTimeDays,
         boolean onboardingCompleted
 ) {
 }

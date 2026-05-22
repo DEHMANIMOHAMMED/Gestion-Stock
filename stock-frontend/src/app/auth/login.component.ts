@@ -54,7 +54,7 @@ export class LoginComponent {
     this.auth.login(email!, password!).subscribe({
       next: () => {
         this.loading = false;
-        this.router.navigateByUrl(this.auth.user()?.onboardingCompleted ? '/dashboard' : '/onboarding');
+        this.router.navigateByUrl(this.auth.landingPath());
       },
       error: (err) => {
         this.loading = false;
@@ -78,7 +78,7 @@ export class LoginComponent {
     this.auth.loginWithGoogle(idToken).subscribe({
       next: () => {
         this.googleLoading = false;
-        this.router.navigateByUrl(this.auth.user()?.onboardingCompleted ? '/dashboard' : '/onboarding');
+        this.router.navigateByUrl(this.auth.landingPath());
       },
       error: (err) => {
         this.googleLoading = false;

@@ -7,6 +7,7 @@ import com.gestionstock.iam.infrastructure.repository.OrganisationRepository;
 import com.gestionstock.iam.infrastructure.repository.UserRepository;
 import com.gestionstock.security.JwtService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 
@@ -40,6 +41,8 @@ public class GoogleAuthService {
                     .build();
 
             userRepository.save(user);
+        } else if (!user.isEnabled()) {
+            throw new AccessDeniedException("Account is disabled");
         }
 
         String token = jwtService.generateGoogleToken(user);

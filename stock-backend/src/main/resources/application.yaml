@@ -36,11 +36,13 @@ server:
 
 jwt:
   secret: ${JWT_SECRET:change_me_with_a_32_chars_min_local_secret}
+  expiration-ms: ${JWT_EXPIRATION_MS:86400000}
 
 ai:
   service:
     enabled: ${AI_SERVICE_ENABLED:false}
     url: ${AI_SERVICE_URL:http://127.0.0.1:8000}
+    internal-key: ${AI_INTERNAL_API_KEY:}
   jobs:
     enabled: ${AI_JOBS_ENABLED:true}
     fixed-delay-ms: ${AI_JOBS_FIXED_DELAY_MS:900000}
@@ -51,3 +53,16 @@ stockpilot:
     ai-per-minute: ${RATE_LIMIT_AI_PER_MINUTE:40}
   procurement:
     approval-threshold: ${PROCUREMENT_APPROVAL_THRESHOLD:1000}
+  owner:
+    enabled: ${APP_OWNER_ENABLED:false}
+    email: ${APP_OWNER_EMAIL:owner@stockpilot.local}
+    password: ${APP_OWNER_PASSWORD:}
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:4200,http://127.0.0.1:4200}
+  billing:
+    stripe-secret-key: ${STRIPE_SECRET_KEY:}
+    stripe-webhook-secret: ${STRIPE_WEBHOOK_SECRET:}
+    success-url: ${BILLING_SUCCESS_URL:http://127.0.0.1:4200/billing?payment=success}
+    cancel-url: ${BILLING_CANCEL_URL:http://127.0.0.1:4200/billing?payment=cancel}
+    starter-price-id: ${STRIPE_PRICE_STARTER:}
+    pro-price-id: ${STRIPE_PRICE_PRO:}

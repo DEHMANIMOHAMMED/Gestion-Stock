@@ -8,6 +8,8 @@ import com.gestionstock.procurement.domain.service.ProductSupplierService;
 import com.gestionstock.procurement.domain.service.SupplierService;
 import com.gestionstock.product.domain.model.Product;
 import com.gestionstock.product.domain.service.ProductService;
+import com.gestionstock.security.PlanAccessService;
+import com.gestionstock.security.PermissionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -26,9 +28,13 @@ public class ProductSupplierController {
     private final ProductSupplierService service;
     private final SupplierService supplierService;
     private final ProductService productService;
+    private final PermissionService permissionService;
+    private final PlanAccessService planAccessService;
 
     @PostMapping
     public ResponseEntity<ProductSupplierResponse> upsert(@Valid @RequestBody ProductSupplierRequest request) {
+        planAccessService.requireProPlan();
+        permissionService.requireAdmin();
         return ResponseEntity.ok(toResponse(service.upsert(ProductSupplier.builder()
                 .productId(request.productId())
                 .supplierId(request.supplierId())
@@ -40,6 +46,7 @@ public class ProductSupplierController {
 
     @GetMapping
     public ResponseEntity<List<ProductSupplierResponse>> findAll(@RequestParam(required = false) Long productId) {
+        planAccessService.requireProPlan();
         List<ProductSupplier> productSuppliers = productId == null ? service.findAll() : service.findByProduct(productId);
         return ResponseEntity.ok(productSuppliers.stream().map(this::toResponse).toList());
     }

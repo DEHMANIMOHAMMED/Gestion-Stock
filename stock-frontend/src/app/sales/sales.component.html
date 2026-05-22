@@ -1,0 +1,234 @@
+<section class="sales-page">
+  <div class="page-header">
+    <div>
+      <span>Demand signal</span>
+      <h1>Ventes</h1>
+      <p>Enregistre les ventes reelles pour alimenter les previsions IA et decrementer le stock automatiquement.</p>
+    </div>
+    <button type="button" (click)="load()" [disabled]="loading()">Rafraichir</button>
+  </div>
+
+  <div class="metric-grid" *ngIf="summary() as data">
+    <article>
+      <span>CA 30 jours</span>
+      <strong>{{ data.revenue30Days | number: '1.2-2' }}</strong>
+    </article>
+    <article>
+      <span>Unites vendues</span>
+      <strong>{{ data.unitsSold30Days }}</strong>
+    </article>
+    <article>
+      <span>Ventes</span>
+      <strong>{{ data.salesCount30Days }}</strong>
+    </article>
+    <article>
+      <span>Panier moyen</span>
+      <strong>{{ data.averageBasket | number: '1.2-2' }}</strong>
+    </article>
+  </div>
+
+  <section class="analytics-grid" *ngIf="analytics() as data">
+    <article class="analytics-panel trend-chart">
+      <div class="section-title">
+        <span>Courbe demande 30 jours</span>
+        <small>Unites vendues</small>
+      </div>
+      <div class="bars">
+        <span
+          *ngFor="let point of data.dailySeries"
+          [style.height.px]="barHeight(point.unitsSold)"
+          [title]="point.date + ' - ' + point.unitsSold + ' unites'"
+        ></span>
+      </div>
+    </article>
+
+    <article class="analytics-panel">
+      <div class="section-title">
+        <span>Canaux</span>
+      </div>
+      <div class="channel-row" *ngFor="let channel of data.channels">
+        <div>
+          <strong>{{ channel.channel }}</strong>
+          <small>{{ channel.salesCount }} ventes - {{ channel.unitsSold }} u</small>
+        </div>
+        <span>{{ channel.sharePercent }}%</span>
+      </div>
+    </article>
+
+    <article class="analytics-panel action-list">
+      <div class="section-title">
+        <span>Demande forte + stock faible</span>
+      </div>
+      <div class="demand-row warning" *ngFor="let product of data.highDemandLowStockProducts">
+        <div>
+          <strong>{{ product.productName }}</strong>
+          <small>{{ product.sku }} - stock {{ product.currentStock }} / seuil {{ product.minStock }}</small>
+        </div>
+        <span>{{ product.currentPeriodUnits }} u</span>
+      </div>
+      <p class="empty-state" *ngIf="!data.highDemandLowStockProducts.length">Aucune tension demande-stock detectee.</p>
+    </article>
+  </section>
+
+  <section class="demand-columns" *ngIf="analytics() as data">
+    <article class="analytics-panel">
+      <div class="section-title">
+        <span>Produits en hausse</span>
+      </div>
+      <div class="demand-row" *ngFor="let product of data.topRisingProducts">
+        <div>
+          <strong>{{ product.productName }}</strong>
+          <small>{{ product.signal }} - avant {{ product.previousPeriodUnits }} u</small>
+        </div>
+        <span>+{{ product.trendPercent }}%</span>
+      </div>
+    </article>
+
+    <article class="analytics-panel">
+      <div class="section-title">
+        <span>Produits en baisse</span>
+      </div>
+      <div class="demand-row muted" *ngFor="let product of data.topDecliningProducts">
+        <div>
+          <strong>{{ product.productName }}</strong>
+          <small>{{ product.signal }} - maintenant {{ product.currentPeriodUnits }} u</small>
+        </div>
+        <span>{{ product.trendPercent }}%</span>
+      </div>
+    </article>
+  </section>
+
+  <section class="forecast-grid" *ngIf="analytics() as data">
+    <article class="analytics-panel seasonality-card">
+      <div class="section-title">
+        <span>Saisonnalite secteur</span>
+        <small>{{ data.seasonality.industry }}</small>
+      </div>
+      <strong class="seasonality-index">{{ data.seasonality.seasonalityIndex }}</strong>
+      <p>{{ data.seasonality.pattern }}</p>
+      <div class="weekday-bars">
+        <span
+          *ngFor="let point of data.seasonality.weekdaySeries"
+          [style.height.px]="weekdayBarHeight(point.unitsSold)"
+          [title]="point.unitsSold + ' unites'"
+        ></span>
+      </div>
+      <small>{{ data.seasonality.insight }}</small>
+    </article>
+
+    <article class="analytics-panel forecast-comparison">
+      <div class="section-title">
+        <span>Reel vs prevision IA</span>
+        <small>Horizon 30 jours</small>
+      </div>
+      <div class="forecast-row" *ngFor="let item of data.forecastComparisons">
+        <div>
+          <strong>{{ item.productName }}</strong>
+          <small>{{ item.sku }} - reel {{ item.actualUnits30Days }} u / prevu {{ item.forecastUnits30Days }} u</small>
+        </div>
+        <div class="variance" [ngClass]="varianceClass(item.variancePercent)">
+          <b>{{ item.variancePercent }}%</b>
+          <small>{{ item.status }}</small>
+        </div>
+      </div>
+      <p class="empty-state" *ngIf="!data.forecastComparisons.length">Aucune prevision IA 30 jours disponible.</p>
+    </article>
+
+    <article class="analytics-panel forecast-alerts">
+      <div class="section-title">
+        <span>Alertes ecart modele</span>
+        <small>{{ data.forecastAlerts.length }}</small>
+      </div>
+      <div class="alert-row" *ngFor="let alert of data.forecastAlerts">
+        <strong>{{ alert.productName }}</strong>
+        <p>{{ alert.message }}</p>
+        <small>{{ alert.recommendedAction }}</small>
+      </div>
+      <p class="empty-state" *ngIf="!data.forecastAlerts.length">Aucun ecart critique detecte.</p>
+    </article>
+  </section>
+
+  <div class="sales-layout">
+    <form class="sale-form" (ngSubmit)="submit()">
+      <div class="section-title">
+        <span>Nouvelle vente</span>
+        <strong>{{ total() | number: '1.2-2' }}</strong>
+      </div>
+
+      <label>
+        Client
+        <input [ngModel]="customerName()" (ngModelChange)="customerName.set($event)" name="customerName" placeholder="Client comptoir" />
+      </label>
+
+      <label>
+        Canal
+        <select [ngModel]="channel()" (ngModelChange)="channel.set($event)" name="channel">
+          <option value="STORE">Boutique</option>
+          <option value="WEB">Web</option>
+          <option value="PHONE">Telephone</option>
+          <option value="B2B">B2B</option>
+          <option value="OTHER">Autre</option>
+        </select>
+      </label>
+
+      <div class="line-editor" *ngFor="let line of lines(); let index = index">
+        <select [ngModel]="line.productId" (ngModelChange)="updateLine(index, { productId: $event })" name="product-{{ index }}">
+          <option [ngValue]="null">Produit</option>
+          <option *ngFor="let product of products()" [ngValue]="product.id">{{ product.name }} - {{ product.sku }}</option>
+        </select>
+        <input type="number" min="1" [ngModel]="line.quantity" (ngModelChange)="updateLine(index, { quantity: $event })" name="quantity-{{ index }}" />
+        <input type="number" min="0" step="0.01" [ngModel]="line.unitPrice" (ngModelChange)="updateLine(index, { unitPrice: $event })" name="price-{{ index }}" />
+        <button type="button" class="icon-btn" (click)="removeLine(index)" [disabled]="lines().length === 1">-</button>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="secondary" (click)="addLine()">Ajouter une ligne</button>
+        <button type="submit" [disabled]="loading()">Enregistrer</button>
+      </div>
+      <p class="message" *ngIf="message()">{{ message() }}</p>
+    </form>
+
+    <section class="top-products" *ngIf="summary() as data">
+      <div class="section-title">
+        <span>Top demande</span>
+      </div>
+      <article *ngFor="let product of data.topProducts">
+        <div>
+          <strong>{{ product.productName }}</strong>
+          <small>{{ product.sku }}</small>
+        </div>
+        <span>{{ product.quantitySold }} u</span>
+        <b>{{ product.revenue | number: '1.2-2' }}</b>
+      </article>
+    </section>
+  </div>
+
+  <section class="sales-history">
+    <div class="section-title">
+      <span>Historique ventes</span>
+      <small>{{ sales().length }} ventes</small>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Reference</th>
+          <th>Client</th>
+          <th>Canal</th>
+          <th>Lignes</th>
+          <th>Total</th>
+          <th>Date</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let sale of sales()">
+          <td>{{ sale.reference }}</td>
+          <td>{{ sale.customerName || 'Client comptoir' }}</td>
+          <td>{{ sale.channel }}</td>
+          <td>{{ sale.lines.length }}</td>
+          <td>{{ sale.totalAmount | number: '1.2-2' }}</td>
+          <td>{{ sale.soldAt | date: 'short' }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+</section>
